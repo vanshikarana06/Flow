@@ -1,0 +1,16 @@
+from enum import Enum
+
+class ApprovalState(str, Enum):
+    DRAFT = "DRAFT"
+    PENDING = "PENDING"
+    MODIFIED = "MODIFIED"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    EXECUTED = "EXECUTED"
+    VERIFIED = "VERIFIED"
+
+class ActionType(str, Enum):
+    SEND_EMAIL = "SEND_EMAIL"
+    CREATE_EVENT = "CREATE_EVENT"
+    RESCHEDULE_EVENT = "RESCHEDULE_EVENT"
+    DELETE_TASK = "DELETE_TASK"

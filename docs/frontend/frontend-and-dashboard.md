@@ -182,3 +182,4 @@ flowchart LR
   - Unanswered important email threads.
   - Upcoming calendar conflicts.
   - Schedule health warnings (e.g., > 5 hours of back-to-back meetings without breaks).
+

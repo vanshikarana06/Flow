@@ -207,3 +207,4 @@ All REST and WebSocket endpoints in `docs/backend/backend-setup-and-apis.md` map
 
 **Status: PASS**  
 Every feature and entity (users, connected accounts, 5 memory types, tasks, calendar events, email threads, approvals, verification receipts, activity logs, proactive alerts) is supported by fully normalized SQL schemas and `pgvector` indexes in `docs/database/schema-and-models.md`.
+
