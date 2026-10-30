@@ -1,4 +1,5 @@
 import uuid
+import inspect
 from typing import Dict, Any, Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, ConfigDict
@@ -27,19 +28,22 @@ class AgentOrchestrator:
     """
     Central Agent Orchestrator coordinating Intent Detection, Memory Context Assembly,
     Plan Generation, and Plan Persistence without executing domain actions.
+    Flow:
+    User Prompt -> Memory Retrieval -> LiteLLM Intent -> LiteLLM Plan -> AgentPlan Record -> Trust Layer
     """
 
     def __init__(self, db: AsyncSession, registry: Optional[ToolRegistry] = None):
         self.db = db
         self.registry = registry or get_tool_registry()
+        self.intent_classifier = IntentClassifier()
         self.memory_engine = MemoryRetrievalEngine(db)
         self.planner = PlannerEngine(self.registry)
         self.plan_repo = AgentPlanRepository(db)
         self.activity_repo = ActivityRepository(db)
 
     async def dispatch(self, prompt: str, user_id: uuid.UUID) -> OrchestratorDispatchResult:
-        # 1. Intent Classification
-        intent_res: IntentResult = IntentClassifier.classify(prompt)
+        # 1. LiteLLM Intent Classification
+        intent_res: IntentResult = await self.intent_classifier.classify_llm(prompt)
 
         # 2. Context Assembly from Personal Memory
         target_hint = (
@@ -52,8 +56,9 @@ class AgentOrchestrator:
             target_entity_hint=target_hint,
         )
 
-        # 3. Plan Generation & Tool Selection
-        plan: PlanSchema = self.planner.generate_plan(
+        # 3. LiteLLM Plan Generation & Tool Selection
+        plan: PlanSchema = await self.planner.generate_plan_llm(
+            prompt=prompt,
             intent_res=intent_res,
             memory_context=memory_ctx,
         )
@@ -79,15 +84,19 @@ class AgentOrchestrator:
                 "intent": plan.intent,
                 "goal": plan.goal,
                 "step_count": len(plan.steps),
-                "required_tools": plan.required_tools,
                 "requires_approval": plan.requires_approval,
+                "required_tools": plan.required_tools,
             },
         )
+        if hasattr(self.db, "commit"):
+            commit_res = self.db.commit()
+            if inspect.isawaitable(commit_res):
+                await commit_res
 
-        # 7. Return Plan (NO Execution)
+        # 7. Return Dispatch Result (Strictly NO Execution)
         return OrchestratorDispatchResult(
             plan_id=str(saved_plan.id),
-            status=saved_plan.status,
+            status=initial_status,
             intent=plan.intent,
             goal=plan.goal,
             steps=[s.model_dump() for s in plan.steps],

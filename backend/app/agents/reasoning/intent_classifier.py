@@ -1,7 +1,12 @@
 import re
+import json
+import logging
 from typing import Dict, Any, Optional, List
 from enum import Enum
 from pydantic import BaseModel, Field
+from app.ai.providers.litellm_provider import LiteLLMProvider
+
+logger = logging.getLogger("flow.agents.intent")
 
 class AgentIntent(str, Enum):
     SEND_EMAIL = "SEND_EMAIL"
@@ -24,8 +29,13 @@ class IntentResult(BaseModel):
 
 class IntentClassifier:
     """
-    Structured Intent Classifier converting user prompts into discrete agent intents
-    and extracted semantic parameters.
+    LiteLLM-powered Agent Intent Classifier with resilient heuristic fallback.
+    Supported Intents:
+    - SEND_EMAIL, READ_EMAIL
+    - CREATE_TASK, UPDATE_TASK, DELETE_TASK
+    - CREATE_EVENT, RESCHEDULE_EVENT, CHECK_CONFLICTS
+    - SAVE_MEMORY, RECALL_MEMORY
+    - GENERAL_ASSISTANCE
     """
 
     PATTERNS = [
@@ -78,8 +88,11 @@ class IntentClassifier:
         ),
     ]
 
+    def __init__(self, provider: Optional[LiteLLMProvider] = None):
+        self.provider = provider or LiteLLMProvider()
+
     @classmethod
-    def classify(cls, prompt: str) -> IntentResult:
+    def classify_heuristics(cls, prompt: str) -> IntentResult:
         normalized = prompt.strip()
         lower_prompt = normalized.lower()
 
@@ -91,7 +104,7 @@ class IntentClassifier:
                     intent=intent,
                     confidence=0.95,
                     extracted_entities=entities,
-                    explanation=f"Matched intent pattern for '{intent.value}' with confidence 0.95",
+                    explanation=f"Matched heuristic pattern for '{intent.value}' with confidence 0.95",
                 )
 
         return IntentResult(
@@ -101,12 +114,40 @@ class IntentClassifier:
             explanation="No deterministic domain pattern matched; routed to GENERAL_ASSISTANCE",
         )
 
+    async def classify_llm(self, prompt: str) -> IntentResult:
+        """
+        Classifies user intent using LiteLLM and returns structured JSON output.
+        """
+        intents_list = [i.value for i in AgentIntent]
+        system_prompt = (
+            f"You are the FLOW OS Intent Classification Engine. Classify the user prompt into exactly ONE of "
+            f"these valid intents: {json.dumps(intents_list)}.\n"
+            f"Extract all semantic entities (e.g. target_recipient, subject_hint, task_title, attendee, time_hint, memory_content).\n"
+            f"Return a structured JSON object strictly matching the schema."
+        )
+
+        try:
+            return await self.provider.generate_structured(
+                prompt=f"User Prompt: '{prompt}'",
+                schema_cls=IntentResult,
+                system_prompt=system_prompt,
+            )
+        except Exception as e:
+            logger.warning(f"LiteLLM intent classification fallback due to: {e}")
+            return self.classify_heuristics(prompt)
+
+    @classmethod
+    def classify(cls, prompt: str) -> IntentResult:
+        """
+        Synchronous classification interface with heuristics fallback.
+        """
+        return cls.classify_heuristics(prompt)
+
     @classmethod
     def _extract_entities(cls, intent: AgentIntent, prompt: str) -> Dict[str, Any]:
         entities: Dict[str, Any] = {"raw_prompt": prompt}
 
         if intent == AgentIntent.SEND_EMAIL:
-            # Match recipient after 'to' or 'email'
             recip_match = re.search(
                 r"(?:(?:to|email|mail)\s+)((?:my\s+)?[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+|my\s+[a-zA-Z-]+|[a-zA-Z-]+(?:\s+[a-zA-Z-]+)?)(?:\s+(?:regarding|about|saying|\.|$)|$)",
                 prompt,

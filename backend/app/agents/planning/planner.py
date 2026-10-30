@@ -1,8 +1,14 @@
+import json
+import logging
 import uuid
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field, ConfigDict
+
 from app.agents.reasoning.intent_classifier import IntentResult, AgentIntent
 from app.agents.tools.tool_registry import ToolRegistry, get_tool_registry
+from app.ai.providers.litellm_provider import LiteLLMProvider
+
+logger = logging.getLogger("flow.agents.planner")
 
 class PlanStep(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -25,14 +31,28 @@ class PlanSchema(BaseModel):
     context_used: Dict[str, Any] = Field(default_factory=dict)
 
 class PlannerEngine:
-    def __init__(self, registry: Optional[ToolRegistry] = None):
+    """
+    LLM-powered Agent Planner utilizing LiteLLM with deterministic fallback.
+    Assembles execution steps, verifies tool availability, and enforces Trust Domain
+    approval invariants.
+    """
+
+    def __init__(
+        self,
+        registry: Optional[ToolRegistry] = None,
+        provider: Optional[LiteLLMProvider] = None,
+    ):
         self.registry = registry or get_tool_registry()
+        self.provider = provider or LiteLLMProvider()
 
     def generate_plan(
         self,
         intent_res: IntentResult,
         memory_context: Dict[str, Any],
     ) -> PlanSchema:
+        """
+        Deterministic planning rules (also acts as fallback for LLM planner).
+        """
         intent = intent_res.intent
         entities = intent_res.extracted_entities
         resolved_contact = memory_context.get("resolved_contact")
@@ -227,3 +247,61 @@ class PlannerEngine:
             },
         )
 
+    async def generate_plan_llm(
+        self,
+        prompt: str,
+        intent_res: IntentResult,
+        memory_context: Dict[str, Any],
+    ) -> PlanSchema:
+        """
+        Generates an intelligent execution plan using LiteLLM.
+        Enforces Trust-First security invariants on sensitive actions.
+        """
+        available_tools = [
+            {"name": t.name, "description": t.description}
+            for t in self.registry.list_tools()
+        ]
+
+        system_prompt = (
+            "You are the FLOW Agentic AI Planner. Convert the user request and intent into a series of "
+            "ordered plan steps (PlanStep[]) using ONLY the available tools.\n"
+            f"Available Tools: {json.dumps(available_tools)}\n\n"
+            "SECURITY INVARIANTS:\n"
+            "1. Outbound email dispatch ('send_approved_draft') MUST have requires_approval=True.\n"
+            "2. Calendar event creation ('create_event') or rescheduling MUST have requires_approval=True.\n"
+            "3. Task deletion ('delete_task') MUST have requires_approval=True.\n"
+            "4. Read-only operations ('read_threads', 'query_memories', 'detect_conflicts') MUST have requires_approval=False.\n"
+            "Output strictly valid JSON matching PlanSchema."
+        )
+
+        user_content = (
+            f"User Prompt: '{prompt}'\n"
+            f"Classified Intent: {intent_res.intent.value}\n"
+            f"Extracted Entities: {json.dumps(intent_res.extracted_entities)}\n"
+            f"Memory Context: {json.dumps(memory_context)}"
+        )
+
+        try:
+            plan = await self.provider.generate_structured(
+                prompt=user_content,
+                schema_cls=PlanSchema,
+                system_prompt=system_prompt,
+            )
+
+            # Enforce security invariants on all generated steps
+            for step in plan.steps:
+                if step.action in ("send_approved_draft", "create_event", "reschedule_event", "delete_task"):
+                    step.requires_approval = True
+
+            # Recalculate derived fields
+            plan.required_tools = list({s.tool for s in plan.steps})
+            plan.requires_approval = any(s.requires_approval for s in plan.steps)
+            plan.context_used = {
+                "resolved_contact": memory_context.get("resolved_contact"),
+                "preferences_applied": bool(memory_context.get("preferences")),
+            }
+            return plan
+
+        except Exception as e:
+            logger.warning(f"LiteLLM planning failed ({e}); falling back to deterministic planner.")
+            return self.generate_plan(intent_res, memory_context)

@@ -62,3 +62,4 @@ class DashboardSummaryResponse(BaseModel):
     approvals: List[ApprovalItemSchema] = Field(default_factory=list)
     activities: List[ActivityItemSchema] = Field(default_factory=list)
     alerts: List[AlertItemSchema] = Field(default_factory=list)
+

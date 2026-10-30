@@ -254,3 +254,4 @@ class DashboardService:
             focus_blocks_count=focus_count,
             events=[EventResponse.model_validate(e) for e in events],
         )
+
