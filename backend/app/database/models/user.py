@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from app.database.models.approval import Approval
     from app.database.models.plan import AgentPlan
     from app.database.models.activity import ActivityLog
+    from app.database.models.email import EmailThread, EmailMessage, EmailDraft
 
 class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "users"
@@ -28,4 +29,7 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     approvals: Mapped[List["Approval"]] = relationship("Approval", back_populates="user", cascade="all, delete-orphan")
     agent_plans: Mapped[List["AgentPlan"]] = relationship("AgentPlan", back_populates="user", cascade="all, delete-orphan")
     activity_logs: Mapped[List["ActivityLog"]] = relationship("ActivityLog", back_populates="user", cascade="all, delete-orphan")
+    email_threads: Mapped[List["EmailThread"]] = relationship("EmailThread", back_populates="user", cascade="all, delete-orphan")
+    email_messages: Mapped[List["EmailMessage"]] = relationship("EmailMessage", back_populates="user", cascade="all, delete-orphan")
+    email_drafts: Mapped[List["EmailDraft"]] = relationship("EmailDraft", back_populates="user", cascade="all, delete-orphan")
 

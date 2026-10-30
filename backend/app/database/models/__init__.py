@@ -11,6 +11,13 @@ from app.database.models.approval import Approval
 from app.database.models.execution import ExecutionLog
 from app.database.models.verification import VerificationLog
 from app.database.models.activity import ActivityLog
+from app.database.models.email import (
+    EmailThread,
+    EmailMessage,
+    EmailDraft,
+    EmailAttachment,
+    EmailDeliveryLog,
+)
 
 __all__ = [
     "User",
@@ -27,5 +34,10 @@ __all__ = [
     "ExecutionLog",
     "VerificationLog",
     "ActivityLog",
+    "EmailThread",
+    "EmailMessage",
+    "EmailDraft",
+    "EmailAttachment",
+    "EmailDeliveryLog",
 ]
 

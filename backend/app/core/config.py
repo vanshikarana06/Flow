@@ -24,16 +24,24 @@ class Settings(BaseSettings):
     TOKEN_ENCRYPTION_KEY: str = "0" * 64
     SUPABASE_WEBHOOK_SECRET: str = "whsec_default"
 
-    # Microsoft Graph
+    # Microsoft Graph (Calendars & Tasks)
     MICROSOFT_CLIENT_ID: str = "00000000-0000-0000-0000-000000000000"
     MICROSOFT_CLIENT_SECRET: str = "secret"
     MICROSOFT_TENANT_ID: str = "common"
     MICROSOFT_REDIRECT_URI: str = "https://api.flow.dev/api/v1/auth/callback/microsoft"
 
-    # Google Workspace
+    # Google Workspace (Google Calendar)
     GOOGLE_CLIENT_ID: str = "google-client-id"
     GOOGLE_CLIENT_SECRET: str = "google-client-secret"
     GOOGLE_REDIRECT_URI: str = "https://api.flow.dev/api/v1/auth/callback/google"
+
+    # Inbound Email (Resend)
+    RESEND_WEBHOOK_SECRET: str = "whsec_resend_default"
+    RESEND_API_KEY: str = "re_default_key"
+
+    # Outbound Email (Google Apps Script Webhook)
+    APPSCRIPT_WEBHOOK_URL: str = "https://script.google.com/macros/s/default/exec"
+    APPSCRIPT_SECRET_KEY: str = "appscript_secret_default"
 
     # Local AI
     LITELLM_BASE_URL: str = "http://localhost:4000"

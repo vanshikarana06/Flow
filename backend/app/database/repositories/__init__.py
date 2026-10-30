@@ -6,6 +6,7 @@ from app.database.repositories.calendar_repo import CalendarRepository
 from app.database.repositories.agent_plan_repo import AgentPlanRepository
 from app.database.repositories.approval_repo import ApprovalRepository
 from app.database.repositories.activity_repo import ActivityRepository
+from app.database.repositories.email_repo import EmailRepository
 
 __all__ = [
     "BaseRepository",
@@ -16,5 +17,6 @@ __all__ = [
     "AgentPlanRepository",
     "ApprovalRepository",
     "ActivityRepository",
+    "EmailRepository",
 ]
 
