@@ -24,7 +24,7 @@ class InvalidStateTransitionException(FlowException):
 class VerificationFailedException(FlowException):
     def __init__(self, action_id: str, reason: str):
         super().__init__(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=getattr(status, "HTTP_422_UNPROCESSABLE_CONTENT", 422),
             detail=f"Verification failed for action {action_id}: {reason}",
             error_code="VERIFICATION_FAILED",
         )

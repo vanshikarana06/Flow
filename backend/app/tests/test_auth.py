@@ -237,3 +237,4 @@ async def test_auth_flow_login_and_me_with_mock_db():
         # Cleanup overrides
         app.dependency_overrides.pop(get_db, None)
         UserRepository.get_with_preferences = original_get_with_pref
+
