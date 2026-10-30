@@ -15,6 +15,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FadeIn } from "@/components/ui/motion-primitives";
 import { mockWorkflows } from "@/lib/mock-data";
 import { WorkflowItem } from "@/lib/types";
 import { useCopilotStore } from "@/stores/use-copilot-store";
@@ -24,18 +25,18 @@ export default function WorkflowsPage() {
   const { toggleOpen, submitPrompt } = useCopilotStore();
 
   return (
-    <div className="space-y-5">
+    <FadeIn className="space-y-5">
       {/* Workflows Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-[#E8DFD1]">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-3 border-b border-[#E8DFD1]">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold tracking-tight text-[#29251F]">Workflow Pipelines</h2>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#29251F]">Workflow Pipelines</h1>
             <Badge variant="verified" className="text-[10px] font-mono">
               {workflows.length} ACTIVE AUTOMATIONS
             </Badge>
           </div>
-          <p className="text-xs text-[#777064] mt-0.5">
-            Zapier-inspired trigger-condition-action sequences with integrated Human-in-the-Loop decision gates.
+          <p className="text-xs sm:text-sm text-[#777064] mt-0.5">
+            Trigger-condition-action workflow sequences with integrated Human-in-the-Loop decision gates.
           </p>
         </div>
 
@@ -62,7 +63,7 @@ export default function WorkflowsPage() {
                   <Zap size={14} />
                 </div>
                 <div>
-                  <CardTitle className="text-xs font-semibold text-[#29251F]">{wf.name}</CardTitle>
+                  <CardTitle className="text-sm font-semibold text-[#29251F]">{wf.name}</CardTitle>
                   <p className="text-[10px] text-[#777064] mt-0.5">Trigger: {wf.trigger}</p>
                 </div>
               </div>
@@ -121,6 +122,7 @@ export default function WorkflowsPage() {
           </Card>
         ))}
       </div>
-    </div>
+    </FadeIn>
   );
 }
+

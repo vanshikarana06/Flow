@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { FadeIn } from "@/components/ui/motion-primitives";
 import { useApprovalStore } from "@/stores/use-approval-store";
 import { ApprovalItem } from "@/lib/types";
 
@@ -95,13 +96,13 @@ export default function ApprovalsPage() {
       {/* USP Banner Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-[#E8DFD1]">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold tracking-tight text-[#29251F]">Approval Center</h2>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#29251F]">Approval Center</h1>
             <Badge variant="warning" className="text-[10px] px-2 font-mono">
               {pendingApprovals.length} PENDING DECISIONS
             </Badge>
           </div>
-          <p className="text-xs text-[#777064] mt-0.5">
+          <p className="text-xs sm:text-sm text-[#777064] mt-0.5">
             Human-in-the-Loop Decision Gate. Consequential actions require your explicit authorization before execution.
           </p>
         </div>
@@ -136,7 +137,7 @@ export default function ApprovalsPage() {
       </div>
 
       {/* Review Cards (GitHub PR Review Archetype in Cream & Orange) */}
-      <div className="space-y-4">
+      <FadeIn className="space-y-4">
         {approvals.map((item) => {
           const isPending = item.status === "pending";
           const isApproved = item.status === "approved";
@@ -171,7 +172,7 @@ export default function ApprovalsPage() {
                       <CheckSquare size={13} className="text-[#C58A32]" />
                     )}
                   </div>
-                  <span className="font-semibold text-[#29251F]">{item.title}</span>
+                  <h3 className="text-sm font-semibold text-[#29251F]">{item.title}</h3>
                   <span className="text-[10px] text-[#777064] font-mono">#{item.id}</span>
                 </div>
 
@@ -349,7 +350,7 @@ export default function ApprovalsPage() {
             </Card>
           );
         })}
-      </div>
+      </FadeIn>
 
       {/* Structured Parameter Modification Modal */}
       <Dialog open={!!modifyingItem} onOpenChange={(open) => !open && setModifyingItem(null)}>

@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { FlowAgentOrb } from "@/components/ui/flow-agent-orb";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -39,14 +40,17 @@ export default function LoginPage() {
     <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-center z-10">
       {/* Left: Product Manifesto / Hero */}
       <div className="space-y-6">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#D97736] text-white font-bold text-base shadow-sm">
-            F
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#D97736] text-white font-bold text-base shadow-sm">
+              F
+            </div>
+            <span className="text-xl font-bold tracking-tight text-[#29251F]">FLOW</span>
+            <Badge variant="outline" className="text-[10px] text-[#D97736] border-[#D97736]/30 bg-[#D97736]/5">
+              v2.0
+            </Badge>
           </div>
-          <span className="text-xl font-bold tracking-tight text-[#29251F]">FLOW</span>
-          <Badge variant="outline" className="text-[10px] text-[#D97736] border-[#D97736]/30 bg-[#D97736]/5">
-            v2.0
-          </Badge>
+          <FlowAgentOrb size={46} glow={true} isProcessing={false} />
         </div>
 
         <div className="space-y-3">

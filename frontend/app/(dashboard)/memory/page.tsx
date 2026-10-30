@@ -10,6 +10,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { FadeIn } from "@/components/ui/motion-primitives";
 import { mockContacts, mockPreferences } from "@/lib/mock-data";
 import { useCopilotStore } from "@/stores/use-copilot-store";
 
@@ -19,17 +20,17 @@ export default function MemoryPage() {
   const { toggleOpen, submitPrompt } = useCopilotStore();
 
   return (
-    <div className="space-y-5">
+    <FadeIn className="space-y-5">
       {/* Memory Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-[#E8DFD1]">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-3 border-b border-[#E8DFD1]">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold tracking-tight text-[#29251F]">Personal Memory & Context Graph</h2>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#29251F]">Personal Memory & Context Graph</h1>
             <Badge variant="outline" className="text-[10px] text-[#D97736] border-[#F7D2BC] font-mono">
-              1,420 Vectors Indexed
+              1,420 Memory Items Indexed
             </Badge>
           </div>
-          <p className="text-xs text-[#777064] mt-0.5">
+          <p className="text-xs sm:text-sm text-[#777064] mt-0.5">
             Relationship dossiers, working preferences, and learned behavioral patterns across your workspace.
           </p>
         </div>
@@ -51,9 +52,9 @@ export default function MemoryPage() {
         {/* Left Column: Relationship Dossiers */}
         <div className="space-y-3.5">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-semibold text-[#777064] uppercase tracking-wider flex items-center gap-1.5">
-              <HeartHandshake size={14} className="text-[#D97736]" /> Contact Relationship Dossiers
-            </h3>
+            <h2 className="text-base font-semibold text-[#29251F] flex items-center gap-2">
+              <HeartHandshake size={16} className="text-[#D97736]" /> Contact Relationship Dossiers
+            </h2>
             <span className="text-[11px] text-[#777064] font-mono">{contacts.length} Contacts</span>
           </div>
 
@@ -66,7 +67,7 @@ export default function MemoryPage() {
                       {contact.avatar}
                     </div>
                     <div>
-                      <h4 className="text-xs font-semibold text-[#29251F]">{contact.name}</h4>
+                      <h3 className="text-sm font-semibold text-[#29251F]">{contact.name}</h3>
                       <p className="text-[11px] text-[#777064]">{contact.role}</p>
                       <p className="text-[10px] text-[#777064] font-mono mt-0.5">{contact.email}</p>
                     </div>
@@ -114,9 +115,9 @@ export default function MemoryPage() {
         {/* Right Column: User Preferences & Learned Patterns */}
         <div className="space-y-3.5">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-semibold text-[#777064] uppercase tracking-wider flex items-center gap-1.5">
-              <Brain size={14} className="text-[#477A58]" /> Working Habits & Rules
-            </h3>
+            <h2 className="text-base font-semibold text-[#29251F] flex items-center gap-2">
+              <Brain size={16} className="text-[#477A58]" /> Working Habits & Rules
+            </h2>
             <span className="text-[11px] text-[#777064] font-mono">{preferences.length} Active Rules</span>
           </div>
 
@@ -137,13 +138,13 @@ export default function MemoryPage() {
                     </Badge>
                   )}
                 </div>
-                <h4 className="font-semibold text-[#29251F] text-xs">{pref.label}</h4>
+                <h3 className="font-semibold text-[#29251F] text-xs">{pref.label}</h3>
                 <p className="text-[#777064] text-[11px] font-sans">{pref.value}</p>
               </div>
             ))}
           </Card>
         </div>
       </div>
-    </div>
+    </FadeIn>
   );
 }

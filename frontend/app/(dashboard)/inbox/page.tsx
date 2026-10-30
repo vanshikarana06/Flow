@@ -110,7 +110,7 @@ export default function InboxPage() {
           {/* Thread Header */}
           <div className="p-3.5 border-b border-[#E8DFD1] flex items-center justify-between bg-[#FFFCF6]">
             <div>
-              <h2 className="text-xs font-semibold text-[#29251F]">{selectedThread.subject}</h2>
+              <h2 className="text-sm sm:text-base font-bold text-[#29251F] leading-snug">{selectedThread.subject}</h2>
               <p className="text-[11px] text-[#777064] mt-0.5">
                 From: <span className="text-[#29251F] font-medium">{selectedThread.sender.name}</span> ({selectedThread.sender.email})
               </p>
@@ -182,8 +182,8 @@ export default function InboxPage() {
 
         {/* Pane 3: Right AI Context Panel */}
         <div className="hidden xl:flex w-76 flex-col bg-[#F8F4EC]/60 p-4 space-y-3.5 overflow-y-auto shrink-0">
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#29251F] border-b border-[#E8DFD1] pb-2">
-            <Sparkles size={14} className="text-primary" />
+          <div className="flex items-center gap-2 text-sm font-semibold text-[#29251F] border-b border-[#E8DFD1] pb-2">
+            <Sparkles size={15} className="text-primary" />
             <span>Thread Intelligence</span>
           </div>
 

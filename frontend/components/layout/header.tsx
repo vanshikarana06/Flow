@@ -41,7 +41,7 @@ export function Header() {
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#E8DFD1] bg-[#FFFCF6]/90 px-4 md:px-6 backdrop-blur-xs z-20">
       {/* Breadcrumb / Title */}
       <div className="flex items-center gap-2.5">
-        <h1 className="text-xs font-semibold text-[#29251F] tracking-tight">{getPageTitle()}</h1>
+        <span className="text-sm font-semibold text-[#29251F] tracking-tight">{getPageTitle()}</span>
         <Badge variant="outline" className="hidden sm:inline-flex text-[9px] text-[#777064] border-[#E8DFD1]">
           FLOW OS
         </Badge>

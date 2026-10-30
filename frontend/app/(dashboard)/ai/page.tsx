@@ -14,10 +14,13 @@ import {
   Shield,
   ChevronDown,
   ChevronUp,
-  Cpu
+  Cpu,
+  RefreshCw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { FlowAgentOrb } from "@/components/ui/flow-agent-orb";
+import { FadeIn } from "@/components/ui/motion-primitives";
 import { useCopilotStore } from "@/stores/use-copilot-store";
 import { useApprovalStore } from "@/stores/use-approval-store";
 
@@ -72,25 +75,23 @@ export default function AiStudioPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-6.5rem)] rounded-xl border border-[#E8DFD1] bg-[#FFFCF6] shadow-soft overflow-hidden">
       {/* 1. Studio Header Bar */}
-      <div className="flex h-12 items-center justify-between px-4 border-b border-[#E8DFD1] bg-[#FFFCF6] shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#FCEEE5] text-[#D97736] border border-[#F7D2BC]">
-            <Bot size={14} />
+      <div className="flex h-14 items-center justify-between px-5 border-b border-[#E8DFD1] bg-[#FFFCF6] shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FCEEE5] text-[#D97736] border border-[#F7D2BC] shadow-2xs">
+            <Bot size={16} />
           </div>
           <div>
-            <h2 className="text-xs font-semibold text-[#29251F]">FLOW Conversational Agent</h2>
+            <h1 className="text-sm sm:text-base font-bold tracking-tight text-[#29251F]">FLOW AI Workspace</h1>
+            <p className="text-[11px] text-[#777064]">Autonomous workspace reasoning & multi-step execution</p>
           </div>
-          <Badge variant="outline" className="hidden sm:inline-flex text-[9px] text-[#777064] border-[#E8DFD1]">
-            Graph & Email Orchestrator
-          </Badge>
         </div>
 
-        <div className="flex items-center gap-3 text-[11px] text-[#777064]">
-          <span className="flex items-center gap-1 font-mono text-[#477A58]">
+        <div className="flex items-center gap-2.5 text-xs text-[#777064]">
+          <span className="inline-flex items-center gap-1.5 font-mono text-[#477A58] bg-[#EBF3ED] px-2.5 py-1 rounded-md border border-[#D1E3D7] text-[11px]">
             <Shield size={12} /> HITL Guardrails Active
           </span>
           {pendingApprovals.length > 0 && (
-            <Badge variant="warning" className="text-[9px] font-mono">
+            <Badge variant="warning" className="text-[10px] font-mono px-2 py-0.5">
               {pendingApprovals.length} Staged Approvals
             </Badge>
           )}
@@ -100,16 +101,19 @@ export default function AiStudioPage() {
       {/* 2. Vertically Scrolling Conversation Canvas (Independent Scroll Container) */}
       <div className="flex-1 overflow-y-auto px-4 md:px-6 py-6 space-y-6">
         <div className="max-w-3xl mx-auto space-y-6">
-          {/* Manifesto & Trust Notice */}
-          <div className="rounded-xl border border-[#E8DFD1] bg-[#F8F4EC]/60 p-4 space-y-2 text-xs">
-            <div className="flex items-center gap-2 font-semibold text-[#29251F]">
-              <Sparkles size={14} className="text-[#D97736]" />
-              <span>Trust-First Agentic Interaction</span>
-            </div>
-            <p className="text-[#777064] leading-relaxed">
-              FLOW interprets natural language requests, inspects connected workspace context across Google Workspace and Microsoft Graph, constructs verifiable execution plans, and strictly halts for your explicit approval before mutating external data.
-            </p>
-          </div>
+          {messages.length === 0 && (
+            <FadeIn className="text-center py-8 space-y-4">
+              <div className="flex justify-center mb-2">
+                <FlowAgentOrb size={90} glow={true} isProcessing={isGenerating} />
+              </div>
+              <div className="space-y-1.5">
+                <h2 className="text-xl font-bold tracking-tight text-[#29251F]">How can FLOW assist you today?</h2>
+                <p className="text-xs text-[#777064] max-w-md mx-auto leading-relaxed">
+                  FLOW coordinates calendar schedules, drafts high-context emails, audits tasks, and organizes your workspace under strict human oversight.
+                </p>
+              </div>
+            </FadeIn>
+          )}
 
           {/* Cursor-Style Active Plan Execution DAG */}
           {activePlan && (
@@ -248,9 +252,12 @@ export default function AiStudioPage() {
           ))}
 
           {isGenerating && (
-            <div className="flex items-center gap-2 text-xs text-[#D97736] animate-pulse py-2">
-              <Sparkles size={14} />
-              <span>Querying Microsoft Graph and staging multi-step execution plan...</span>
+            <div className="flex items-center gap-3.5 p-3.5 rounded-xl border border-[#F7D2BC] bg-[#FCEEE5]/60 text-xs shadow-2xs">
+              <FlowAgentOrb size={32} isProcessing={true} glow={false} />
+              <div className="space-y-0.5">
+                <p className="font-semibold text-[#29251F]">Querying Microsoft Graph & Staging Plan...</p>
+                <p className="text-[11px] text-[#777064]">Evaluating constraints and calculating optimal scheduling parameters.</p>
+              </div>
             </div>
           )}
 

@@ -16,6 +16,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FadeIn } from "@/components/ui/motion-primitives";
 import { mockAgents } from "@/lib/mock-data";
 import { AgentItem } from "@/lib/types";
 import { useCopilotStore } from "@/stores/use-copilot-store";
@@ -33,18 +34,18 @@ export default function AgentsPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <FadeIn className="space-y-5">
       {/* Agents Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-[#E8DFD1]">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-3 border-b border-[#E8DFD1]">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold tracking-tight text-[#29251F]">AI Agent Fleet</h2>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#29251F]">AI Agent Fleet</h1>
             <Badge variant="verified" className="text-[10px] font-mono">
               {agents.filter(a => a.status === "active").length} ACTIVE AGENTS
             </Badge>
           </div>
-          <p className="text-xs text-[#777064] mt-0.5">
-            Lindy-inspired transparent agent management. Monitor autonomous capabilities, connected tools, and HITL safety boundaries.
+          <p className="text-xs sm:text-sm text-[#777064] mt-0.5">
+            Autonomous workspace agents with transparent capabilities, connected tools, and strict HITL safety boundaries.
           </p>
         </div>
 
@@ -79,7 +80,7 @@ export default function AgentsPage() {
                     <Cpu size={16} />
                   </div>
                   <div>
-                    <CardTitle className="text-xs font-semibold text-[#29251F]">
+                    <CardTitle className="text-sm font-semibold text-[#29251F]">
                       {agent.name}
                     </CardTitle>
                     <p className="text-[10px] text-[#777064] font-mono mt-0.5">
@@ -182,6 +183,7 @@ export default function AgentsPage() {
           );
         })}
       </div>
-    </div>
+    </FadeIn>
   );
 }
+

@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { FadeIn } from "@/components/ui/motion-primitives";
 import { mockCalendarEvents } from "@/lib/mock-data";
 import { useCopilotStore } from "@/stores/use-copilot-store";
 import { useApprovalStore } from "@/stores/use-approval-store";
@@ -35,25 +36,32 @@ export default function CalendarPage() {
   ];
 
   return (
-    <div className="space-y-4">
+    <FadeIn className="space-y-5">
       {/* Calendar Header Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 border-b border-[#E8DFD1]">
-        <div className="flex items-center gap-2.5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-3 border-b border-[#E8DFD1]">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#29251F]">Calendar & Schedule</h1>
+            <Badge variant="verified" className="text-[10px]">
+              Microsoft Graph Synced
+            </Badge>
+          </div>
+          <p className="text-xs sm:text-sm text-[#777064] mt-0.5">
+            Synchronized workspace scheduling with automated conflict detection and time blocking.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
           <div className="flex items-center gap-1 border border-[#E8DFD1] rounded-lg p-0.5 bg-[#FFFCF6] shadow-2xs">
-            <button className="p-1 text-[#777064] hover:text-[#29251F] rounded hover:bg-[#F1EADF]">
+            <button className="p-1 text-[#777064] hover:text-[#29251F] rounded hover:bg-[#F1EADF] transition-colors">
               <ChevronLeft size={15} />
             </button>
             <span className="px-2.5 text-xs font-semibold text-[#29251F]">October 26 - 31, 2026</span>
-            <button className="p-1 text-[#777064] hover:text-[#29251F] rounded hover:bg-[#F1EADF]">
+            <button className="p-1 text-[#777064] hover:text-[#29251F] rounded hover:bg-[#F1EADF] transition-colors">
               <ChevronRight size={15} />
             </button>
           </div>
-          <Badge variant="verified" className="text-[10px]">
-            Microsoft Graph Synced
-          </Badge>
-        </div>
 
-        <div className="flex items-center gap-2">
           {/* View Mode Toggle */}
           <div className="flex items-center bg-[#F1EADF] p-0.5 rounded-lg border border-[#E8DFD1]">
             <button
@@ -333,6 +341,6 @@ export default function CalendarPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </FadeIn>
   );
 }

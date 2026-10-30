@@ -14,6 +14,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { FadeIn } from "@/components/ui/motion-primitives";
 import { mockLedger } from "@/lib/mock-data";
 
 export default function ActivityPage() {
@@ -33,17 +34,17 @@ export default function ActivityPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <FadeIn className="space-y-5">
       {/* Ledger Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-[#E8DFD1]">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-3 border-b border-[#E8DFD1]">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold tracking-tight text-[#29251F]">Activity History & Verification Ledger</h2>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#29251F]">Activity History & Verification Ledger</h1>
             <Badge variant="verified" className="text-[10px] font-mono">
               Append-Only Ledger Active
             </Badge>
           </div>
-          <p className="text-xs text-[#777064] mt-0.5">
+          <p className="text-xs sm:text-sm text-[#777064] mt-0.5">
             Cryptographic execution log: Plan Staged ➔ Approved ➔ Executed ➔ Verified ➔ Receipt Minted.
           </p>
         </div>
@@ -82,7 +83,7 @@ export default function ActivityPage() {
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#EDF5F0] text-[#477A58] font-mono text-[10px] font-bold">
                   ✓
                 </span>
-                <span className="font-semibold text-[#29251F]">{item.title}</span>
+                <h3 className="font-semibold text-[#29251F]">{item.title}</h3>
                 <span className="text-[10px] text-[#777064] font-mono">#{item.id}</span>
               </div>
 
@@ -165,6 +166,6 @@ export default function ActivityPage() {
           </Card>
         ))}
       </div>
-    </div>
+    </FadeIn>
   );
 }

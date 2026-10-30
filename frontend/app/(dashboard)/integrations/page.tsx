@@ -15,6 +15,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FadeIn } from "@/components/ui/motion-primitives";
 import { mockIntegrations } from "@/lib/mock-data";
 import { IntegrationItem } from "@/lib/types";
 
@@ -34,18 +35,18 @@ export default function IntegrationsPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <FadeIn className="space-y-5">
       {/* Integrations Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-[#E8DFD1]">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-3 border-b border-[#E8DFD1]">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold tracking-tight text-[#29251F]">Connected Integrations</h2>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#29251F]">Connected Integrations</h1>
             <Badge variant="verified" className="text-[10px] font-mono">
               {integrations.filter(i => i.status === "connected").length} CONNECTED SERVICES
             </Badge>
           </div>
-          <p className="text-xs text-[#777064] mt-0.5">
-            Manage authorized OAuth 2.0 PKCE connections, API tokens, and access scopes across your productivity stack.
+          <p className="text-xs sm:text-sm text-[#777064] mt-0.5">
+            Manage authorized OAuth 2.0 PKCE connections, API tokens, and access scopes across your workspace.
           </p>
         </div>
 
@@ -77,7 +78,7 @@ export default function IntegrationsPage() {
                     {item.provider === "microsoft" ? "M" : item.provider === "google" ? "G" : item.provider === "supabase" ? "S" : item.provider === "resend" ? "R" : "#"}
                   </div>
                   <div>
-                    <CardTitle className="text-xs font-semibold text-[#29251F]">{item.name}</CardTitle>
+                    <CardTitle className="text-sm font-semibold text-[#29251F]">{item.name}</CardTitle>
                     <p className="text-[10px] text-[#777064] font-mono">{item.category}</p>
                   </div>
                 </div>
@@ -134,6 +135,7 @@ export default function IntegrationsPage() {
           );
         })}
       </div>
-    </div>
+    </FadeIn>
   );
 }
+

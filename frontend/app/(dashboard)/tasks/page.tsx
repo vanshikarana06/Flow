@@ -16,6 +16,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { FadeIn } from "@/components/ui/motion-primitives";
 import { mockTasks } from "@/lib/mock-data";
 import { TaskItem } from "@/lib/types";
 import { useCopilotStore } from "@/stores/use-copilot-store";
@@ -52,17 +53,17 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <FadeIn className="space-y-5">
       {/* Task View Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 border-b border-[#E8DFD1]">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-3 border-b border-[#E8DFD1]">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold tracking-tight text-[#29251F]">Intelligent Tasks</h2>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#29251F]">Tasks & Execution Plan</h1>
             <Badge variant="outline" className="text-[10px] text-[#777064] border-[#E8DFD1]">
               {filteredTasks.length} Items
             </Badge>
           </div>
-          <p className="text-xs text-[#777064] mt-0.5">
+          <p className="text-xs sm:text-sm text-[#777064] mt-0.5">
             Motion-inspired task management with AI goal decomposition and calendar time blocking.
           </p>
         </div>
@@ -278,6 +279,6 @@ export default function TasksPage() {
           ))}
         </Card>
       )}
-    </div>
+    </FadeIn>
   );
 }

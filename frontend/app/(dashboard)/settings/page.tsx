@@ -14,6 +14,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { FadeIn } from "@/components/ui/motion-primitives";
 
 export default function SettingsPage() {
   const [hitlEmail, setHitlEmail] = useState(true);
@@ -22,11 +23,11 @@ export default function SettingsPage() {
   const [quotaPerHour, setQuotaPerHour] = useState(15);
 
   return (
-    <div className="space-y-5 max-w-3xl">
+    <FadeIn className="space-y-5 max-w-3xl">
       {/* Settings Header */}
       <div className="pb-3 border-b border-[#E8DFD1]">
-        <h2 className="text-base font-bold tracking-tight text-[#29251F]">System Settings & Guardrails</h2>
-        <p className="text-xs text-[#777064] mt-0.5">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#29251F]">System Settings & Guardrails</h1>
+        <p className="text-xs sm:text-sm text-[#777064] mt-0.5">
           Workspace integrations, Human-in-the-Loop decision policies, and security credentials.
         </p>
       </div>
@@ -35,7 +36,7 @@ export default function SettingsPage() {
       <Card className="border-[#E8DFD1] bg-[#FFFCF6]">
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <div>
-            <CardTitle className="text-xs font-semibold flex items-center gap-2 text-[#29251F]">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2 text-[#29251F]">
               <Globe size={15} className="text-[#D97736]" /> Connected Workspace Services
             </CardTitle>
             <CardDescription>
@@ -103,8 +104,8 @@ export default function SettingsPage() {
       {/* Section 2: Human-in-the-Loop Safety Policies */}
       <Card className="border-[#E8DFD1] bg-[#FFFCF6]">
         <CardHeader>
-          <CardTitle className="text-xs font-semibold flex items-center gap-2 text-[#C58A32]">
-            <ShieldCheck size={15} /> Human Decision Guardrail Policies
+          <CardTitle className="text-sm font-semibold flex items-center gap-2 text-[#C58A32]">
+            <ShieldCheck size={16} /> Human Decision Guardrail Policies
           </CardTitle>
           <CardDescription>
             Specify which external mutations require human approval before execution.
@@ -164,8 +165,8 @@ export default function SettingsPage() {
       {/* Section 3: Autonomous Execution Quota */}
       <Card className="border-[#E8DFD1] bg-[#FFFCF6]">
         <CardHeader>
-          <CardTitle className="text-xs font-semibold flex items-center gap-2 text-[#29251F]">
-            <Sliders size={15} className="text-[#D97736]" /> Autonomous Action Quota & Rate Limits
+          <CardTitle className="text-sm font-semibold flex items-center gap-2 text-[#29251F]">
+            <Sliders size={16} className="text-[#D97736]" /> Autonomous Action Quota & Rate Limits
           </CardTitle>
           <CardDescription>
             Prevent agent runaway execution with strict hourly action budgets.
@@ -189,6 +190,6 @@ export default function SettingsPage() {
           </p>
         </CardContent>
       </Card>
-    </div>
+    </FadeIn>
   );
 }
