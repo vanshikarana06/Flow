@@ -62,3 +62,4 @@ class ApprovalRepository(BaseRepository[Approval]):
             update(Approval).where(Approval.id == approval_id).values(**values)
         )
         return await self.get_by_id(approval_id)
+

@@ -50,3 +50,4 @@ class CalendarRepository(BaseRepository[CalendarEvent]):
             .values(start_time=new_start, end_time=new_end, sync_status=SyncStatus.PENDING_SYNC)
         )
         return await self.get_by_id(event_id)
+

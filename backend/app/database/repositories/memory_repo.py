@@ -54,3 +54,4 @@ class MemoryRepository(BaseRepository[MemoryRecord]):
             select(Relationship).where(Relationship.user_id == user_id)
         )
         return list(result.scalars().all())
+

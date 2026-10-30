@@ -243,3 +243,4 @@ def downgrade() -> None:
     op.drop_table('connected_accounts')
     op.drop_table('preferences')
     op.drop_table('users')
+

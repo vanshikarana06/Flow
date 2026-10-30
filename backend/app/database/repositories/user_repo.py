@@ -30,3 +30,4 @@ class UserRepository(BaseRepository[User]):
             self.session.add(pref)
             await self.session.flush()
         return user
+

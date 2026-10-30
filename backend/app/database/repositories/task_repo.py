@@ -40,3 +40,4 @@ class TaskRepository(BaseRepository[Task]):
         self.session.add_all(subtasks)
         await self.session.flush()
         return subtasks
+

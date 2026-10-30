@@ -33,3 +33,4 @@ class ActivityRepository(BaseRepository[ActivityLog]):
         stmt = stmt.order_by(ActivityLog.created_at.desc()).limit(limit).offset(offset)
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
+
