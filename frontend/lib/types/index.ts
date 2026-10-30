@@ -2,7 +2,16 @@
 
 export type RiskLevel = "low" | "medium" | "high";
 
-export type ApprovalStatus = "pending" | "approved" | "rejected" | "modified";
+export type ApprovalStatus = 
+  | "proposed"
+  | "pending"
+  | "approved"
+  | "executing"
+  | "completed"
+  | "failed"
+  | "unknown"
+  | "rejected"
+  | "modified";
 
 export interface ActionDiff {
   entityType: "email" | "calendar" | "task";
@@ -10,6 +19,15 @@ export interface ActionDiff {
   title: string;
   before?: Record<string, any>;
   after: Record<string, any>;
+}
+
+export interface VerificationReceipt {
+  receiptHash: string;
+  timestamp: string;
+  signature: string;
+  verifiedBy: string;
+  latencyMs: number;
+  httpStatus: number;
 }
 
 export interface ApprovalItem {
@@ -24,6 +42,8 @@ export interface ApprovalItem {
   diff: ActionDiff;
   idempotencyKey: string;
   targetService: string;
+  verificationReceipt?: VerificationReceipt;
+  executionError?: string;
 }
 
 export interface ThreadMessage {
@@ -65,6 +85,11 @@ export interface CalendarEvent {
   attendees: { name: string; email: string; avatar?: string }[];
   isConflict?: boolean;
   conflictDetails?: string;
+  suggestedSlot?: {
+    startTime: string;
+    endTime: string;
+    reason: string;
+  };
 }
 
 export interface TaskItem {
@@ -76,15 +101,8 @@ export interface TaskItem {
   category: "Backend" | "Security" | "Product" | "Research";
   aiBreakdown?: string[];
   progress: number; // 0 - 100
-}
-
-export interface VerificationReceipt {
-  receiptHash: string;
-  timestamp: string;
-  signature: string;
-  verifiedBy: string;
-  latencyMs: number;
-  httpStatus: number;
+  estimatedDuration?: string;
+  scheduledTime?: string;
 }
 
 export interface LedgerEntry {
@@ -140,5 +158,52 @@ export interface CopilotMessage {
   text: string;
   timestamp: string;
   plan?: AgentPlan;
+  reasoningSteps?: string[];
 }
 
+// Automation Domain Types (Lindy + Zapier Integration)
+export interface AgentItem {
+  id: string;
+  name: string;
+  description: string;
+  category: "calendar" | "email" | "task" | "security";
+  status: "active" | "paused" | "evaluating";
+  connectedServices: string[];
+  hitlPolicy: "strict" | "moderate" | "autonomous";
+  lastActive: string;
+  actionsExecutedToday: number;
+  permissions: string[];
+}
+
+export interface WorkflowStep {
+  id: string;
+  order: number;
+  type: "trigger" | "condition" | "hitl_gate" | "action";
+  label: string;
+  detail: string;
+  status: "active" | "waiting" | "passed";
+}
+
+export interface WorkflowItem {
+  id: string;
+  name: string;
+  description: string;
+  trigger: string;
+  steps: WorkflowStep[];
+  status: "active" | "draft" | "paused";
+  lastRun: string;
+  totalRuns: number;
+  hitlRequired: boolean;
+}
+
+export interface IntegrationItem {
+  id: string;
+  name: string;
+  provider: "microsoft" | "google" | "supabase" | "slack" | "resend";
+  category: "Calendar & Email" | "Database & Vector" | "Communications" | "Webhooks";
+  status: "connected" | "disconnected" | "action_required";
+  connectedAccount: string;
+  lastSynced: string;
+  authType: "OAuth 2.0 PKCE" | "API Key" | "Service Principal";
+  scopes: string[];
+}

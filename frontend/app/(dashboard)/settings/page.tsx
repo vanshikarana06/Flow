@@ -1,10 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { 
   Globe, 
   ShieldCheck, 
-  Lock 
+  Lock, 
+  Layers, 
+  ArrowRight,
+  Sliders,
+  CheckCircle2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +19,7 @@ export default function SettingsPage() {
   const [hitlEmail, setHitlEmail] = useState(true);
   const [hitlCalendar, setHitlCalendar] = useState(true);
   const [hitlTask, setHitlTask] = useState(false);
+  const [quotaPerHour, setQuotaPerHour] = useState(15);
 
   return (
     <div className="space-y-5 max-w-3xl">
@@ -25,15 +31,23 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      {/* Section 1: Connected Services */}
+      {/* Section 1: Connected Services Quick View */}
       <Card className="border-[#E8DFD1] bg-[#FFFCF6]">
-        <CardHeader>
-          <CardTitle className="text-xs font-semibold flex items-center gap-2">
-            <Globe size={15} className="text-primary" /> Connected Workspace Services
-          </CardTitle>
-          <CardDescription>
-            Third-party API connections managed via OAuth 2.0 PKCE.
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <div>
+            <CardTitle className="text-xs font-semibold flex items-center gap-2 text-[#29251F]">
+              <Globe size={15} className="text-[#D97736]" /> Connected Workspace Services
+            </CardTitle>
+            <CardDescription>
+              Third-party API connections managed via OAuth 2.0 PKCE.
+            </CardDescription>
+          </div>
+          <Link href="/integrations">
+            <Button size="sm" variant="outline" className="text-xs h-7 gap-1 border-[#E8DFD1] hover:bg-[#F1EADF]">
+              <span>Manage Integrations</span>
+              <ArrowRight size={12} />
+            </Button>
+          </Link>
         </CardHeader>
         <CardContent className="space-y-2.5">
           {/* Microsoft 365 */}
@@ -44,7 +58,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <h4 className="font-semibold text-[#29251F]">Microsoft 365 / Graph API</h4>
-                <p className="text-[10px] text-[#777064] font-mono">Mail, Calendar, Tasks</p>
+                <p className="text-[10px] text-[#777064] font-mono">Mail, Calendar, Tasks • vanshika@flow.ai</p>
               </div>
             </div>
             <Badge variant="verified" className="text-[9px]">
@@ -60,7 +74,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <h4 className="font-semibold text-[#29251F]">Google Workspace</h4>
-                <p className="text-[10px] text-[#777064] font-mono">Gmail API, Google Calendar API</p>
+                <p className="text-[10px] text-[#777064] font-mono">Gmail API, Google Calendar API • vanshika.flow@gmail.com</p>
               </div>
             </div>
             <Badge variant="verified" className="text-[9px]">
@@ -106,7 +120,7 @@ export default function SettingsPage() {
             <Button
               size="sm"
               variant={hitlEmail ? "default" : "outline"}
-              className="h-6 text-[11px]"
+              className={`h-7 text-[11px] font-semibold ${hitlEmail ? "bg-[#D97736] hover:bg-[#B95727] text-white" : "border-[#E8DFD1]"}`}
               onClick={() => setHitlEmail(!hitlEmail)}
             >
               {hitlEmail ? "Enabled (Strict)" : "Disabled"}
@@ -122,7 +136,7 @@ export default function SettingsPage() {
             <Button
               size="sm"
               variant={hitlCalendar ? "default" : "outline"}
-              className="h-6 text-[11px]"
+              className={`h-7 text-[11px] font-semibold ${hitlCalendar ? "bg-[#D97736] hover:bg-[#B95727] text-white" : "border-[#E8DFD1]"}`}
               onClick={() => setHitlCalendar(!hitlCalendar)}
             >
               {hitlCalendar ? "Enabled (Strict)" : "Disabled"}
@@ -138,12 +152,41 @@ export default function SettingsPage() {
             <Button
               size="sm"
               variant={hitlTask ? "default" : "secondary"}
-              className="h-6 text-[11px]"
+              className={`h-7 text-[11px] font-semibold ${hitlTask ? "bg-[#D97736] hover:bg-[#B95727] text-white" : "bg-[#F1EADF] text-[#777064]"}`}
               onClick={() => setHitlTask(!hitlTask)}
             >
-              {hitlTask ? "Require Approval" : "Autonomous (Fast)"}
+              {hitlTask ? "Enabled (Strict)" : "Autonomous"}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Section 3: Autonomous Execution Quota */}
+      <Card className="border-[#E8DFD1] bg-[#FFFCF6]">
+        <CardHeader>
+          <CardTitle className="text-xs font-semibold flex items-center gap-2 text-[#29251F]">
+            <Sliders size={15} className="text-[#D97736]" /> Autonomous Action Quota & Rate Limits
+          </CardTitle>
+          <CardDescription>
+            Prevent agent runaway execution with strict hourly action budgets.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-[#29251F]">Max Operations Per Hour:</span>
+            <span className="font-mono font-bold text-[#D97736] text-sm">{quotaPerHour} actions / hr</span>
+          </div>
+          <input
+            type="range"
+            min="5"
+            max="50"
+            value={quotaPerHour}
+            onChange={(e) => setQuotaPerHour(Number(e.target.value))}
+            className="w-full accent-[#D97736]"
+          />
+          <p className="text-[10px] text-[#777064]">
+            If this quota is reached, all subsequent operations are paused and require explicit Human-in-the-Loop authorization.
+          </p>
         </CardContent>
       </Card>
     </div>

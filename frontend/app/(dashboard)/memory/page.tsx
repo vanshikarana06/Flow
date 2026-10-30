@@ -25,7 +25,7 @@ export default function MemoryPage() {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-base font-bold tracking-tight text-[#29251F]">Personal Memory & Context Graph</h2>
-            <Badge variant="outline" className="text-[10px] text-primary border-[#F7D2BC]">
+            <Badge variant="outline" className="text-[10px] text-[#D97736] border-[#F7D2BC] font-mono">
               1,420 Vectors Indexed
             </Badge>
           </div>
@@ -40,7 +40,7 @@ export default function MemoryPage() {
             submitPrompt("Add custom contact preference for Aditya: Always notify 15 mins before standup");
           }}
           size="sm"
-          className="text-xs font-semibold gap-1.5"
+          className="text-xs font-semibold gap-1.5 bg-[#D97736] hover:bg-[#B95727] text-white"
         >
           <Plus size={13} />
           <span>Add Custom Memory</span>
@@ -52,7 +52,7 @@ export default function MemoryPage() {
         <div className="space-y-3.5">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-semibold text-[#777064] uppercase tracking-wider flex items-center gap-1.5">
-              <HeartHandshake size={14} className="text-primary" /> Contact Relationship Dossiers
+              <HeartHandshake size={14} className="text-[#D97736]" /> Contact Relationship Dossiers
             </h3>
             <span className="text-[11px] text-[#777064] font-mono">{contacts.length} Contacts</span>
           </div>
@@ -62,7 +62,7 @@ export default function MemoryPage() {
               <Card key={contact.id} className="border-[#E8DFD1] bg-[#FFFCF6] p-4 space-y-3 shadow-2xs">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FCEEE5] text-primary border border-[#F7D2BC] font-bold text-xs">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FCEEE5] text-[#D97736] border border-[#F7D2BC] font-bold text-xs">
                       {contact.avatar}
                     </div>
                     <div>
@@ -85,7 +85,7 @@ export default function MemoryPage() {
                   <ul className="space-y-0.5 text-[#29251F] text-[11px]">
                     {contact.preferences.map((pref, i) => (
                       <li key={i} className="flex items-start gap-1.5">
-                        <span className="text-primary mt-0.5">•</span>
+                        <span className="text-[#D97736] mt-0.5">•</span>
                         <span>{pref}</span>
                       </li>
                     ))}
@@ -94,13 +94,13 @@ export default function MemoryPage() {
 
                 {/* AI Behavioral Context */}
                 <div className="rounded-lg bg-[#FCEEE5]/40 p-2.5 space-y-1 border border-[#F7D2BC] text-xs">
-                  <span className="text-[9px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1">
-                    <Sparkles size={11} className="text-primary" /> Learned Context
+                  <span className="text-[9px] font-semibold text-[#D97736] uppercase tracking-wider flex items-center gap-1">
+                    <Sparkles size={11} className="text-[#D97736]" /> Learned Context
                   </span>
                   <ul className="space-y-0.5 text-[#777064] text-[11px]">
                     {contact.learnedContext.map((ctx, i) => (
                       <li key={i} className="flex items-start gap-1.5">
-                        <span className="text-primary mt-0.5">↳</span>
+                        <span className="text-[#D97736] mt-0.5">↳</span>
                         <span>{ctx}</span>
                       </li>
                     ))}
@@ -128,7 +128,7 @@ export default function MemoryPage() {
                     {pref.category}
                   </span>
                   {pref.isLearned ? (
-                    <Badge variant="default" className="text-[8px]">
+                    <Badge variant="default" className="text-[8px] bg-[#D97736]/10 text-[#D97736] border-[#D97736]/30">
                       AI Learned
                     </Badge>
                   ) : (

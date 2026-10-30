@@ -13,7 +13,11 @@ import {
   Clock, 
   Mail, 
   Fingerprint,
-  AlertTriangle
+  AlertTriangle,
+  RotateCcw,
+  Loader2,
+  CheckCircle2,
+  ShieldAlert
 } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,13 +29,14 @@ import { useApprovalStore } from "@/stores/use-approval-store";
 import { ApprovalItem } from "@/lib/types";
 
 export default function ApprovalsPage() {
-  const { approvals, approveAction, rejectAction, modifyAction } = useApprovalStore();
+  const { approvals, approveAction, rejectAction, modifyAction, resetAll } = useApprovalStore();
   const [modifyingItem, setModifyingItem] = useState<ApprovalItem | null>(null);
 
   // Form states for structured modification (no raw JSON!)
   const [editSubject, setEditSubject] = useState("");
   const [editBody, setEditBody] = useState("");
   const [editStartTime, setEditStartTime] = useState("");
+  const [editNotification, setEditNotification] = useState("");
 
   const pendingApprovals = approvals.filter((a) => a.status === "pending");
 
@@ -42,6 +47,7 @@ export default function ApprovalsPage() {
       setEditBody(item.diff.after.body || "");
     } else if (item.diff.entityType === "calendar") {
       setEditStartTime(item.diff.after.startTime || "");
+      setEditNotification(item.diff.after.recipientNotification || "");
     }
   };
 
@@ -53,9 +59,35 @@ export default function ApprovalsPage() {
       updated.body = editBody;
     } else if (modifyingItem.diff.entityType === "calendar") {
       updated.startTime = editStartTime;
+      updated.recipientNotification = editNotification;
     }
     modifyAction(modifyingItem.id, updated);
     setModifyingItem(null);
+  };
+
+  const getStatusBadge = (status: ApprovalItem["status"]) => {
+    switch (status) {
+      case "pending":
+        return <Badge variant="warning" className="text-[10px] uppercase font-semibold">Pending Approval</Badge>;
+      case "approved":
+        return <Badge variant="outline" className="text-[10px] uppercase text-[#D97736] border-[#D97736]/40 bg-[#D97736]/10 font-semibold">User Approved (Dispatching)</Badge>;
+      case "executing":
+        return (
+          <Badge variant="outline" className="text-[10px] uppercase text-[#C58A32] border-[#C58A32]/40 bg-[#FEF8ED] font-semibold flex items-center gap-1">
+            <Loader2 size={10} className="animate-spin" /> Executing
+          </Badge>
+        );
+      case "completed":
+        return <Badge variant="verified" className="text-[10px] uppercase font-semibold">Executed & Verified ✓</Badge>;
+      case "rejected":
+        return <Badge variant="destructive" className="text-[10px] uppercase font-semibold">Rejected</Badge>;
+      case "modified":
+        return <Badge variant="outline" className="text-[10px] uppercase text-primary border-primary/30 font-semibold">Parameters Modified</Badge>;
+      case "failed":
+        return <Badge variant="destructive" className="text-[10px] uppercase font-semibold">Execution Failed</Badge>;
+      default:
+        return <Badge variant="secondary" className="text-[10px] uppercase font-mono">{status}</Badge>;
+    }
   };
 
   return (
@@ -70,30 +102,46 @@ export default function ApprovalsPage() {
             </Badge>
           </div>
           <p className="text-xs text-[#777064] mt-0.5">
-            Human-in-the-Loop Decision Gate. Inspect and review consequential actions before execution.
+            Human-in-the-Loop Decision Gate. Consequential actions require your explicit authorization before execution.
           </p>
         </div>
 
-        {pendingApprovals.length > 0 && (
-          <Button
-            size="sm"
-            variant="default"
-            className="text-xs font-semibold gap-1.5"
-            onClick={() => {
-              pendingApprovals.forEach((a) => approveAction(a.id));
-            }}
-          >
-            <Check size={13} />
-            <span>Batch Approve All ({pendingApprovals.length})</span>
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {pendingApprovals.length === 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={resetAll}
+              className="text-xs border-[#E8DFD1] hover:bg-[#F1EADF] gap-1"
+            >
+              <RotateCcw size={12} />
+              <span>Reset Demo State</span>
+            </Button>
+          )}
+
+          {pendingApprovals.length > 0 && (
+            <Button
+              size="sm"
+              variant="default"
+              className="text-xs font-semibold gap-1.5 bg-[#D97736] hover:bg-[#B95727] text-white"
+              onClick={() => {
+                pendingApprovals.forEach((a) => approveAction(a.id));
+              }}
+            >
+              <Check size={13} />
+              <span>Batch Authorize All ({pendingApprovals.length})</span>
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Review Cards (GitHub PR Review Aesthetic in Cream & Orange) */}
+      {/* Review Cards (GitHub PR Review Archetype in Cream & Orange) */}
       <div className="space-y-4">
         {approvals.map((item) => {
           const isPending = item.status === "pending";
           const isApproved = item.status === "approved";
+          const isExecuting = item.status === "executing";
+          const isCompleted = item.status === "completed";
           const isRejected = item.status === "rejected";
 
           return (
@@ -102,9 +150,13 @@ export default function ApprovalsPage() {
               className={`border transition-all duration-200 overflow-hidden shadow-soft ${
                 isPending
                   ? "border-[#F9E2BE] bg-[#FFFCF6]"
-                  : isApproved
+                  : isCompleted
                   ? "border-[#CDE3D5] bg-[#EDF5F0]/20"
-                  : "border-[#E8DFD1] bg-[#F1EADF]/30 opacity-60"
+                  : isExecuting
+                  ? "border-[#D97736]/40 bg-[#FFFCF6]"
+                  : isRejected
+                  ? "border-[#E8DFD1] bg-[#F1EADF]/30 opacity-60"
+                  : "border-[#E8DFD1] bg-[#FFFCF6]"
               }`}
             >
               {/* Card Meta Bar */}
@@ -112,7 +164,7 @@ export default function ApprovalsPage() {
                 <div className="flex items-center gap-2">
                   <div className="p-1 rounded bg-[#FFFCF6] border border-[#E8DFD1] text-[#29251F]">
                     {item.diff.entityType === "email" ? (
-                      <Send size={13} className="text-primary" />
+                      <Send size={13} className="text-[#D97736]" />
                     ) : item.diff.entityType === "calendar" ? (
                       <Calendar size={13} className="text-[#477A58]" />
                     ) : (
@@ -136,18 +188,11 @@ export default function ApprovalsPage() {
                   >
                     Risk: {item.risk}
                   </Badge>
-                  <Badge
-                    variant={
-                      isApproved ? "verified" : isPending ? "warning" : "secondary"
-                    }
-                    className="text-[10px] uppercase font-semibold"
-                  >
-                    {item.status}
-                  </Badge>
+                  {getStatusBadge(item.status)}
                 </div>
               </div>
 
-              {/* Main Body: Reason + Rich Preview */}
+              {/* Main Body: Reason + Structured Preview */}
               <CardContent className="p-4 space-y-3.5 text-xs">
                 {/* Intent & Context */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
@@ -161,121 +206,143 @@ export default function ApprovalsPage() {
                   </div>
                   <div className="space-y-1">
                     <span className="text-[10px] font-semibold text-[#777064] uppercase tracking-wider">
-                      Agent Rationale
+                      Agent Rationale & Target
                     </span>
-                    <p className="p-2.5 rounded-lg bg-[#F1EADF]/50 border border-[#E8DFD1] text-[#29251F] font-sans text-[11px]">
-                      {item.description}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Rich Domain Preview (Replacing Raw JSON) */}
-                <div className="rounded-xl border border-[#E8DFD1] bg-[#F8F4EC]/60 p-3.5 space-y-2">
-                  <div className="flex items-center justify-between text-[11px] text-[#777064] border-b border-[#E8DFD1] pb-1.5">
-                    <span className="font-semibold text-[#29251F]">
-                      Proposed Action Details
-                    </span>
-                    <span className="font-mono text-[10px]">
-                      Target: {item.targetService}
-                    </span>
-                  </div>
-
-                  {/* If Email Action */}
-                  {item.diff.entityType === "email" && (
-                    <div className="rounded-lg bg-[#FFFCF6] border border-[#E8DFD1] p-3 space-y-2 text-xs">
-                      <div className="flex items-center gap-2 text-[11px] text-[#777064] border-b border-[#E8DFD1]/60 pb-1.5">
-                        <Mail size={12} className="text-primary" />
-                        <span>To: <strong className="text-[#29251F] font-mono">{item.diff.after.to}</strong></span>
-                      </div>
-                      <div className="text-[11px] font-semibold text-[#29251F]">
-                        Subject: {item.diff.after.subject}
-                      </div>
-                      <p className="text-[11px] text-[#777064] whitespace-pre-line leading-relaxed bg-[#F8F4EC]/50 p-2 rounded border border-[#E8DFD1]">
-                        {item.diff.after.body}
+                    <div className="p-2.5 rounded-lg bg-[#F1EADF]/50 border border-[#E8DFD1] text-[#29251F] font-sans text-[11px]">
+                      <p>{item.description}</p>
+                      <p className="text-[9px] text-[#777064] font-mono mt-1">
+                        Service: <span className="text-[#29251F] font-semibold">{item.targetService}</span> • Idempotency: {item.idempotencyKey}
                       </p>
                     </div>
-                  )}
-
-                  {/* If Calendar Action */}
-                  {item.diff.entityType === "calendar" && (
-                    <div className="rounded-lg bg-[#FFFCF6] border border-[#E8DFD1] p-3 space-y-2 text-xs">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded bg-[#FEF8ED] text-[#C58A32] border border-[#F9E2BE]">
-                          <Clock size={16} />
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-semibold text-[#29251F]">{item.diff.title}</p>
-                          <div className="flex items-center gap-2 text-[11px] text-[#777064] mt-1">
-                            <span className="line-through text-[#C65345] bg-[#FDF2F0] px-1.5 py-0.5 rounded border border-[#F3C8C2]">
-                              {item.diff.before?.startTime}
-                            </span>
-                            <ArrowRight size={12} className="text-[#777064]" />
-                            <span className="font-semibold text-[#477A58] bg-[#EDF5F0] px-1.5 py-0.5 rounded border border-[#CDE3D5]">
-                              {item.diff.after.startTime}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* If Task Action */}
-                  {item.diff.entityType === "task" && (
-                    <div className="rounded-lg bg-[#FFFCF6] border border-[#E8DFD1] p-3 space-y-1.5 text-xs">
-                      <p className="font-semibold text-[#29251F]">{item.diff.title}</p>
-                      <div className="flex items-center gap-2 text-[11px] text-[#777064]">
-                        <span>Status:</span>
-                        <Badge variant="outline" className="text-[9px] line-through text-[#C65345]">
-                          {item.diff.before?.status}
-                        </Badge>
-                        <ArrowRight size={11} />
-                        <Badge variant="success" className="text-[9px]">
-                          {item.diff.after.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  )}
+                  </div>
                 </div>
 
-                {/* Cryptographic Idempotency Metadata */}
-                <div className="flex items-center justify-between text-[10px] text-[#777064] font-mono px-1">
-                  <span className="flex items-center gap-1">
-                    <Fingerprint size={12} className="text-primary" />
-                    Idempotency Key: {item.idempotencyKey}
+                {/* Domain-Specific Visual Preview (No Raw JSON Strings!) */}
+                <div className="space-y-1.5 pt-1">
+                  <span className="text-[10px] font-semibold text-[#777064] uppercase tracking-wider">
+                    Proposed Mutation Parameters (Inspect Before Approval)
                   </span>
-                  <span className="text-[#477A58]">Rollback Verified</span>
+
+                  {item.diff.entityType === "email" && (
+                    <div className="rounded-xl border border-[#E8DFD1] bg-[#FFFCF6] p-3.5 space-y-2 text-xs shadow-2xs">
+                      <div className="flex flex-wrap items-center justify-between border-b border-[#E8DFD1]/70 pb-2 text-[11px] gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[#777064]">To:</span>
+                          <span className="font-semibold text-[#29251F] bg-[#F1EADF] px-2 py-0.5 rounded font-mono text-[10px]">
+                            {item.diff.after.to}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-[#777064] font-mono">Outbound Gateway: Resend</span>
+                      </div>
+                      <div>
+                        <span className="text-[#777064] text-[10px] font-mono">Subject:</span>
+                        <h4 className="font-semibold text-[#29251F] text-xs">{item.diff.after.subject}</h4>
+                      </div>
+                      <div className="p-3 rounded-lg bg-[#F8F4EC] border border-[#E8DFD1] text-[11px] text-[#29251F] font-sans whitespace-pre-line leading-relaxed">
+                        {item.diff.after.body}
+                      </div>
+                    </div>
+                  )}
+
+                  {item.diff.entityType === "calendar" && (
+                    <div className="rounded-xl border border-[#E8DFD1] bg-[#FFFCF6] p-3.5 space-y-2.5 text-xs shadow-2xs">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        <div className="p-2.5 rounded-lg border border-[#F5C2BC] bg-[#FDEDEB]/60">
+                          <span className="text-[10px] text-[#C65345] font-semibold uppercase font-mono">
+                            Current Conflicting Slot
+                          </span>
+                          <p className="font-semibold text-[#29251F] mt-1">{item.diff.before?.startTime}</p>
+                          <p className="text-[10px] text-[#C65345] mt-0.5">Overlaps with Partner Sync</p>
+                        </div>
+
+                        <div className="p-2.5 rounded-lg border border-[#CDE3D5] bg-[#EDF5F0]/60">
+                          <span className="text-[10px] text-[#477A58] font-semibold uppercase font-mono">
+                            Proposed Non-Conflicting Slot
+                          </span>
+                          <p className="font-semibold text-[#29251F] mt-1">{item.diff.after.startTime}</p>
+                          <p className="text-[10px] text-[#477A58] mt-0.5">0 Collisions • Focus time preserved</p>
+                        </div>
+                      </div>
+                      {item.diff.after.recipientNotification && (
+                        <div className="p-2 rounded bg-[#F8F4EC] border border-[#E8DFD1] text-[10px] text-[#777064] flex items-center gap-1.5">
+                          <Mail size={12} className="text-[#D97736]" />
+                          <span>Notice: {item.diff.after.recipientNotification}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {item.diff.entityType === "task" && (
+                    <div className="rounded-xl border border-[#E8DFD1] bg-[#FFFCF6] p-3 space-y-2 text-xs shadow-2xs">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold text-[#29251F]">{item.diff.title}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] line-through text-[#777064]">
+                            {item.diff.before?.status} ({item.diff.before?.progress}%)
+                          </span>
+                          <ArrowRight size={12} className="text-[#777064]" />
+                          <Badge variant="verified" className="text-[9px]">
+                            {item.diff.after.status} (100%)
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
+
+                {/* Cryptographic Execution Proof Banner (Visible when completed) */}
+                {item.verificationReceipt && (
+                  <div className="rounded-xl border border-[#CDE3D5] bg-[#EDF5F0]/60 p-3 space-y-1.5 font-mono text-[10px]">
+                    <div className="flex items-center justify-between text-[#477A58] border-b border-[#CDE3D5] pb-1">
+                      <span className="flex items-center gap-1.5 font-sans font-semibold text-xs">
+                        <Fingerprint size={13} /> Verified Execution Receipt
+                      </span>
+                      <span>HTTP {item.verificationReceipt.httpStatus} • {item.verificationReceipt.latencyMs}ms</span>
+                    </div>
+                    <div className="space-y-0.5 text-[#29251F]">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="text-[#777064]">Receipt Hash:</span>
+                        <span className="text-[#D97736] font-bold truncate">{item.verificationReceipt.receiptHash}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[#777064]">Engine:</span>
+                        <span className="text-[#477A58]">{item.verificationReceipt.verifiedBy}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
 
-              {/* Action Buttons */}
-              {isPending && (
-                <CardFooter className="flex items-center justify-end gap-2 px-4 py-2.5 border-t border-[#E8DFD1] bg-[#F8F4EC]/70">
+              {/* Action Decision Gate Footer (Only for Pending or Modified) */}
+              {(isPending || item.status === "modified") && (
+                <CardFooter className="px-4 py-3 bg-[#F8F4EC]/50 border-t border-[#E8DFD1] flex flex-wrap items-center justify-end gap-2">
                   <Button
                     size="sm"
                     variant="destructive"
-                    className="h-7 text-xs gap-1"
+                    className="h-8 text-xs gap-1"
                     onClick={() => rejectAction(item.id)}
                   >
-                    <X size={12} />
-                    <span>Reject</span>
+                    <X size={13} />
+                    <span>Reject Action</span>
                   </Button>
+
                   <Button
                     size="sm"
-                    variant="secondary"
-                    className="h-7 text-xs gap-1"
+                    variant="outline"
+                    className="h-8 text-xs gap-1 border-[#E8DFD1] hover:bg-[#F1EADF] text-[#29251F]"
                     onClick={() => openModifyDialog(item)}
                   >
-                    <Edit3 size={12} />
-                    <span>Edit Proposal</span>
+                    <Edit3 size={13} />
+                    <span>Modify Parameters</span>
                   </Button>
+
                   <Button
                     size="sm"
-                    variant="default"
-                    className="h-7 text-xs font-semibold gap-1"
+                    className="h-8 text-xs font-semibold gap-1.5 bg-[#477A58] hover:bg-[#3D6A4C] text-white"
                     onClick={() => approveAction(item.id)}
                   >
                     <Check size={13} />
-                    <span>Approve & Dispatch</span>
+                    <span>Approve & Execute (HITL)</span>
                   </Button>
                 </CardFooter>
               )}
@@ -284,59 +351,80 @@ export default function ApprovalsPage() {
         })}
       </div>
 
-      {/* Structured Modify Proposal Dialog (Clean Forms, Not Raw JSON) */}
-      <Dialog open={!!modifyingItem} onOpenChange={() => setModifyingItem(null)}>
-        <DialogContent className="max-w-lg">
+      {/* Structured Parameter Modification Modal */}
+      <Dialog open={!!modifyingItem} onOpenChange={(open) => !open && setModifyingItem(null)}>
+        <DialogContent className="max-w-lg bg-[#FFFCF6] border-[#E8DFD1] text-[#29251F]">
           <DialogHeader>
-            <DialogTitle>Edit Action Proposal</DialogTitle>
-            <DialogDescription>
-              Adjust proposal parameters directly before giving approval.
+            <DialogTitle className="text-sm font-bold text-[#29251F]">
+              Modify Action Parameters: {modifyingItem?.title}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-[#777064]">
+              Adjust parameters before providing human authorization. These values will be validated and dispatched.
             </DialogDescription>
           </DialogHeader>
 
-          {modifyingItem && (
-            <div className="space-y-3 py-2 text-xs">
-              {modifyingItem.diff.entityType === "email" ? (
-                <>
-                  <div className="space-y-1">
-                    <label className="font-semibold text-[#29251F]">Subject</label>
-                    <Input
-                      value={editSubject}
-                      onChange={(e) => setEditSubject(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="font-semibold text-[#29251F]">Email Message Body</label>
-                    <Textarea
-                      rows={5}
-                      value={editBody}
-                      onChange={(e) => setEditBody(e.target.value)}
-                    />
-                  </div>
-                </>
-              ) : modifyingItem.diff.entityType === "calendar" ? (
+          <div className="space-y-3 py-2 text-xs">
+            {modifyingItem?.diff.entityType === "email" && (
+              <>
                 <div className="space-y-1">
-                  <label className="font-semibold text-[#29251F]">Rescheduled Time Slot</label>
+                  <label className="text-[11px] font-semibold text-[#777064]">Subject Line</label>
+                  <Input
+                    value={editSubject}
+                    onChange={(e) => setEditSubject(e.target.value)}
+                    className="h-8 text-xs bg-[#F8F4EC] border-[#E8DFD1]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-[#777064]">Draft Body</label>
+                  <Textarea
+                    rows={5}
+                    value={editBody}
+                    onChange={(e) => setEditBody(e.target.value)}
+                    className="text-xs bg-[#F8F4EC] border-[#E8DFD1] leading-relaxed"
+                  />
+                </div>
+              </>
+            )}
+
+            {modifyingItem?.diff.entityType === "calendar" && (
+              <>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-[#777064]">Rescheduled Time Slot</label>
                   <Input
                     value={editStartTime}
                     onChange={(e) => setEditStartTime(e.target.value)}
-                    placeholder="e.g. Friday, Oct 31, 04:00 PM"
+                    placeholder="e.g. Friday, Oct 31, 04:30 PM"
+                    className="h-8 text-xs bg-[#F8F4EC] border-[#E8DFD1]"
                   />
                 </div>
-              ) : (
-                <div className="p-3 bg-[#F1EADF] rounded text-[#777064]">
-                  Confirm task status transition to completed.
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-[#777064]">Attendee Notification Note</label>
+                  <Input
+                    value={editNotification}
+                    onChange={(e) => setEditNotification(e.target.value)}
+                    placeholder="e.g. Sent to aditya@flow.ai"
+                    className="h-8 text-xs bg-[#F8F4EC] border-[#E8DFD1]"
+                  />
                 </div>
-              )}
-            </div>
-          )}
+              </>
+            )}
+          </div>
 
-          <div className="flex justify-end gap-2 pt-2 border-t border-[#E8DFD1]">
-            <Button variant="ghost" size="sm" onClick={() => setModifyingItem(null)}>
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E8DFD1]">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setModifyingItem(null)}
+              className="text-xs border-[#E8DFD1]"
+            >
               Cancel
             </Button>
-            <Button variant="default" size="sm" onClick={handleSaveModification}>
-              Save & Update Proposal
+            <Button
+              size="sm"
+              onClick={handleSaveModification}
+              className="text-xs font-semibold bg-[#D97736] hover:bg-[#B95727] text-white"
+            >
+              Save Parameters
             </Button>
           </div>
         </DialogContent>

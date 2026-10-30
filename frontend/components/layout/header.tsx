@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { 
   Search, 
   Sparkles, 
-  ShieldAlert, 
   Command as CommandIcon 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,7 +28,10 @@ export function Header() {
     if (pathname.includes("inbox")) return "Unified Inbox";
     if (pathname.includes("calendar")) return "Smart Calendar";
     if (pathname.includes("tasks")) return "Task Pipeline";
-    if (pathname.includes("activity")) return "Activity Ledger";
+    if (pathname.includes("agents")) return "AI Agent Fleet";
+    if (pathname.includes("workflows")) return "Workflow Pipelines";
+    if (pathname.includes("integrations")) return "Connected Integrations";
+    if (pathname.includes("activity")) return "Activity History";
     if (pathname.includes("memory")) return "Personal Memory & Context";
     if (pathname.includes("settings")) return "System Settings";
     return "FLOW";

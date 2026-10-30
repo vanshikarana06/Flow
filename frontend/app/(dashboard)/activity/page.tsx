@@ -1,12 +1,15 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { 
   History, 
   Download, 
   Fingerprint, 
   CheckCircle2, 
-  Shield 
+  Shield, 
+  Copy, 
+  Check, 
+  Filter 
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,14 +17,29 @@ import { Badge } from "@/components/ui/badge";
 import { mockLedger } from "@/lib/mock-data";
 
 export default function ActivityPage() {
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [filterCat, setFilterCat] = useState<string>("All");
+
+  const categories = ["All", "Calendar", "Email", "Task", "Security"];
+
+  const filtered = mockLedger.filter(item => 
+    filterCat === "All" ? true : item.category.toLowerCase() === filterCat.toLowerCase()
+  );
+
+  const copyReceiptHash = (hash: string, id: string) => {
+    navigator.clipboard?.writeText(hash);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   return (
     <div className="space-y-5">
       {/* Ledger Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-[#E8DFD1]">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold tracking-tight text-[#29251F]">Activity Ledger</h2>
-            <Badge variant="verified" className="text-[10px]">
+            <h2 className="text-base font-bold tracking-tight text-[#29251F]">Activity History & Verification Ledger</h2>
+            <Badge variant="verified" className="text-[10px] font-mono">
               Append-Only Ledger Active
             </Badge>
           </div>
@@ -30,15 +48,34 @@ export default function ActivityPage() {
           </p>
         </div>
 
-        <Button size="sm" variant="outline" className="text-xs font-semibold gap-1.5 border-[#E8DFD1] hover:bg-[#F1EADF]">
-          <Download size={13} />
-          <span>Export Audit Log (JSON)</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Category Filter Pills */}
+          <div className="flex items-center gap-1 bg-[#F1EADF] p-0.5 rounded-lg border border-[#E8DFD1]">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setFilterCat(cat)}
+                className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+                  filterCat === cat
+                    ? "bg-[#FFFCF6] text-[#29251F] shadow-2xs"
+                    : "text-[#777064] hover:text-[#29251F]"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          <Button size="sm" variant="outline" className="text-xs font-semibold gap-1.5 border-[#E8DFD1] hover:bg-[#F1EADF]">
+            <Download size={13} />
+            <span className="hidden sm:inline">Export Audit Log (JSON)</span>
+          </Button>
+        </div>
       </div>
 
       {/* Timeline Stream */}
       <div className="space-y-3.5">
-        {mockLedger.map((item) => (
+        {filtered.map((item) => (
           <Card key={item.id} className="border-[#E8DFD1] bg-[#FFFCF6] overflow-hidden shadow-2xs">
             <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 border-b border-[#E8DFD1] bg-[#F8F4EC]/60 text-xs">
               <div className="flex items-center gap-2">
@@ -100,9 +137,18 @@ export default function ActivityPage() {
                   </div>
 
                   <div className="space-y-0.5 text-[#29251F]">
-                    <div className="flex items-center gap-1.5 truncate">
-                      <span className="text-[#777064]">Receipt Hash:</span>
-                      <span className="text-primary truncate font-semibold">{item.receipt.receiptHash}</span>
+                    <div className="flex items-center justify-between gap-1.5">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="text-[#777064]">Receipt Hash:</span>
+                        <span className="text-[#D97736] truncate font-semibold">{item.receipt.receiptHash}</span>
+                      </div>
+                      <button
+                        onClick={() => copyReceiptHash(item.receipt!.receiptHash, item.id)}
+                        className="text-[#777064] hover:text-[#29251F] p-0.5 shrink-0"
+                        title="Copy Hash"
+                      >
+                        {copiedId === item.id ? <Check size={11} className="text-[#477A58]" /> : <Copy size={11} />}
+                      </button>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span className="text-[#777064]">Signature:</span>

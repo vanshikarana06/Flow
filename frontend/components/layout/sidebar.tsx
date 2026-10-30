@@ -12,26 +12,63 @@ import {
   History, 
   Brain, 
   Settings, 
-  Sparkles,
-  ChevronLeft,
-  ChevronRight,
-  Shield,
-  Bot
+  ChevronLeft, 
+  ChevronRight, 
+  Shield, 
+  Bot,
+  Zap,
+  Cpu,
+  Layers
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLayoutStore } from "@/stores/use-layout-store";
 import { useApprovalStore } from "@/stores/use-approval-store";
 
-export const navItems = [
-  { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
-  { name: "AI Workspace", href: "/ai", icon: Bot, isAi: true },
-  { name: "Approvals", href: "/approvals", icon: ShieldCheck, isApproval: true },
-  { name: "Inbox", href: "/inbox", icon: Inbox, badge: "3" },
-  { name: "Calendar", href: "/calendar", icon: Calendar },
-  { name: "Tasks", href: "/tasks", icon: CheckSquare },
-  { name: "Activity", href: "/activity", icon: History },
-  { name: "Memory", href: "/memory", icon: Brain },
-  { name: "Settings", href: "/settings", icon: Settings },
+export interface NavGroup {
+  label: string;
+  items: {
+    name: string;
+    href: string;
+    icon: React.ComponentType<{ size?: number; className?: string }>;
+    badge?: string | number;
+    isApproval?: boolean;
+    isConflict?: boolean;
+  }[];
+}
+
+export const navGroups: NavGroup[] = [
+  {
+    label: "Workspace",
+    items: [
+      { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
+      { name: "Assistant", href: "/ai", icon: Bot },
+      { name: "Inbox", href: "/inbox", icon: Inbox, badge: "3" },
+      { name: "Calendar", href: "/calendar", icon: Calendar, isConflict: true, badge: "1" },
+      { name: "Tasks", href: "/tasks", icon: CheckSquare },
+    ],
+  },
+  {
+    label: "Automation",
+    items: [
+      { name: "AI Agents", href: "/agents", icon: Cpu },
+      { name: "Workflows", href: "/workflows", icon: Zap },
+      { name: "Integrations", href: "/integrations", icon: Layers },
+    ],
+  },
+  {
+    label: "Management",
+    items: [
+      { name: "Approval Center", href: "/approvals", icon: ShieldCheck, isApproval: true },
+      { name: "Activity History", href: "/activity", icon: History },
+    ],
+  },
+  {
+    label: "Preferences",
+    items: [
+      { name: "Personal Memory", href: "/memory", icon: Brain },
+      { name: "Settings", href: "/settings", icon: Settings },
+    ],
+  },
 ];
 
 export function Sidebar() {
@@ -64,56 +101,70 @@ export function Sidebar() {
         <button
           onClick={toggleSidebar}
           className="text-[#777064] hover:text-[#29251F] p-1 rounded-md hover:bg-[#F1EADF] transition-colors"
-          title={sidebarCollapsed ? "Expand Sidebar (⌘B)" : "Collapse Sidebar"}
+          title={sidebarCollapsed ? "Expand Sidebar (⌘B)" : "Collapse Sidebar (⌘B)"}
         >
           {sidebarCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
         </button>
       </div>
 
-      {/* Navigation Links */}
-      <nav className="flex-1 space-y-0.5 p-2 overflow-y-auto">
-        {navItems.map((item) => {
-          const isActive = pathname.startsWith(item.href);
-          const Icon = item.icon;
-          const badgeCount = item.isApproval ? pendingApprovalsCount : item.badge;
+      {/* Grouped Navigation Links */}
+      <nav className="flex-1 space-y-3 p-2 overflow-y-auto">
+        {navGroups.map((group) => (
+          <div key={group.label} className="space-y-0.5">
+            {!sidebarCollapsed ? (
+              <div className="px-2.5 py-1 text-[10px] font-semibold text-[#777064] uppercase tracking-wider">
+                {group.label}
+              </div>
+            ) : (
+              <div className="my-1.5 border-t border-[#E8DFD1]/60" />
+            )}
 
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={cn(
-                "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all duration-150",
-                isActive
-                  ? "bg-[#FCEEE5] text-[#B95727] font-semibold border border-[#F7D2BC]"
-                  : "text-[#777064] hover:bg-[#F1EADF] hover:text-[#29251F]"
-              )}
-              title={sidebarCollapsed ? item.name : undefined}
-            >
-              <Icon
-                size={16}
-                className={cn(
-                  "shrink-0 transition-colors",
-                  isActive
-                    ? "text-primary"
-                    : "text-[#777064] group-hover:text-[#29251F]"
-                )}
-              />
-              {!sidebarCollapsed && <span className="flex-1 truncate">{item.name}</span>}
-              {!sidebarCollapsed && badgeCount && Number(badgeCount) > 0 && (
-                <span
+            {group.items.map((item) => {
+              const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+              const Icon = item.icon;
+              const badgeCount = item.isApproval ? pendingApprovalsCount : item.badge;
+
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
                   className={cn(
-                    "ml-auto flex h-4 min-w-[18px] items-center justify-center rounded-full px-1 text-[9px] font-bold font-mono",
-                    item.isApproval
-                      ? "bg-[#FEF8ED] text-[#C58A32] border border-[#F9E2BE]"
-                      : "bg-[#F1EADF] text-[#777064]"
+                    "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all duration-150",
+                    isActive
+                      ? "bg-[#FCEEE5] text-[#B95727] font-semibold border border-[#F7D2BC]"
+                      : "text-[#777064] hover:bg-[#F1EADF] hover:text-[#29251F]"
                   )}
+                  title={sidebarCollapsed ? item.name : undefined}
                 >
-                  {badgeCount}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+                  <Icon
+                    size={16}
+                    className={cn(
+                      "shrink-0 transition-colors",
+                      isActive
+                        ? "text-primary"
+                        : "text-[#777064] group-hover:text-[#29251F]"
+                    )}
+                  />
+                  {!sidebarCollapsed && <span className="flex-1 truncate">{item.name}</span>}
+                  {!sidebarCollapsed && badgeCount !== undefined && Number(badgeCount) > 0 && (
+                    <span
+                      className={cn(
+                        "ml-auto flex h-4 min-w-[18px] items-center justify-center rounded-full px-1 text-[9px] font-bold font-mono",
+                        item.isApproval
+                          ? "bg-[#FEF8ED] text-[#C58A32] border border-[#F9E2BE]"
+                          : item.isConflict
+                          ? "bg-[#FDEDEB] text-[#C65345] border border-[#F5C2BC]"
+                          : "bg-[#F1EADF] text-[#777064]"
+                      )}
+                    >
+                      {badgeCount}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* User & Trust Profile Footer */}
