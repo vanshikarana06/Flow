@@ -17,6 +17,7 @@ from app.shared.enums.email import EmailDirection, DraftStatus, DeliveryStatus
 class EmailRepository(BaseRepository[EmailThread]):
     def __init__(self, db: AsyncSession):
         super().__init__(EmailThread, db)
+        self.db = db
 
     # -------------------------------------------------------------------------
     # Thread Operations

@@ -19,12 +19,19 @@ router = APIRouter(prefix="/email", tags=["Self-Owned Email OS"])
 async def receive_resend_webhook(
     request: Request,
     db: AsyncSession = Depends(get_db),
+    svix_id: Optional[str] = Header(None, alias="svix-id"),
+    svix_timestamp: Optional[str] = Header(None, alias="svix-timestamp"),
     svix_signature: Optional[str] = Header(None, alias="svix-signature"),
 ):
     body_bytes = await request.body()
     email_service = EmailService(db)
     
-    if not email_service.webhook_handler.verify_signature(body_bytes, svix_signature):
+    if not email_service.webhook_handler.verify_signature(
+        body_bytes,
+        signature_header=svix_signature,
+        svix_id=svix_id,
+        svix_timestamp=svix_timestamp,
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid Resend webhook signature",
@@ -34,11 +41,22 @@ async def receive_resend_webhook(
     # Resolve target user from recipient domain / headers (default fallback to first user or system recipient)
     # Target user resolution:
     from app.database.models.user import User
+    from app.database.models.preference import Preference
     from sqlalchemy import select
     res = await db.execute(select(User).limit(1))
     target_user = res.scalar_one_or_none()
     if not target_user:
-        raise HTTPException(status_code=500, detail="No system user found for inbound delivery")
+        # Auto-provision default primary user so inbound emails are never dropped
+        target_user = User(
+            email="user@flow.dev",
+            full_name="FLOW Workspace Owner",
+        )
+        db.add(target_user)
+        await db.flush()
+        pref = Preference(user_id=target_user.id)
+        db.add(pref)
+        await db.commit()
+        await db.refresh(target_user)
 
     result = await email_service.handle_inbound_webhook(raw_json, target_user.id)
     return StandardResponse(data=result.model_dump())
