@@ -65,3 +65,4 @@ def test_intent_general_assistance():
     result = IntentClassifier.classify(prompt)
     assert result.intent == AgentIntent.GENERAL_ASSISTANCE
     assert result.confidence == 0.70
+

@@ -24,6 +24,7 @@ from app.calendar.router import router as calendar_router
 from app.email.router import router as email_router
 from app.dashboard.router import router as dashboard_router
 from app.notifications.router import router as notifications_router
+from app.workflows.router import router as workflows_router
 from app.websocket.router import router as websocket_router
 
 settings = get_settings()
@@ -88,6 +89,7 @@ app.include_router(calendar_router, prefix=api_v1_prefix)
 app.include_router(email_router, prefix=api_v1_prefix)
 app.include_router(dashboard_router, prefix=api_v1_prefix)
 app.include_router(notifications_router, prefix=api_v1_prefix)
+app.include_router(workflows_router, prefix=api_v1_prefix)
 
 # Include WebSocket Router
 app.include_router(websocket_router)

@@ -226,3 +226,4 @@ class PlannerEngine:
                 "preferences_applied": bool(preferences),
             },
         )
+

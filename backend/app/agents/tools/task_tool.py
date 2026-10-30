@@ -8,7 +8,7 @@ class TaskTool(BaseTool):
     parameters_schema = {
         "type": "object",
         "properties": {
-            "action": {"type": "string", "enum": ["create_task", "breakdown_task", "prioritize"]},
+            "action": {"type": "string", "enum": ["create_task", "breakdown_task", "prioritize", "delete_task"]},
             "title": {"type": "string"},
             "task_type": {"type": "string"},
             "due_date": {"type": "string"},
@@ -17,5 +17,21 @@ class TaskTool(BaseTool):
     }
 
     async def execute(self, input_data: Dict[str, Any], user_id: uuid.UUID) -> ToolResult:
-        return ToolResult(success=True, data={"status": "TASK_PROCESSED", "task": input_data})
+        action = input_data.get("action")
+        if action == "delete_task":
+            return ToolResult(
+                success=True,
+                data={
+                    "task_id": input_data.get("task_id") or f"tsk_{uuid.uuid4().hex[:12]}",
+                    "status": "DELETED",
+                },
+            )
+        return ToolResult(
+            success=True,
+            data={
+                "task_id": input_data.get("task_id") or f"tsk_{uuid.uuid4().hex[:12]}",
+                "status": "TASK_PROCESSED",
+                "task": input_data,
+            },
+        )
 

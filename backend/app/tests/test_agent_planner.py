@@ -88,3 +88,4 @@ def test_planner_generates_task_deletion_with_approval():
     assert plan.requires_approval is True
     assert plan.steps[0].tool == "task_tool"
     assert plan.steps[0].action == "delete_task"
+

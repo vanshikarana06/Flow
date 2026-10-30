@@ -20,6 +20,18 @@ class CalendarTool(BaseTool):
     async def execute(self, input_data: Dict[str, Any], user_id: uuid.UUID) -> ToolResult:
         action = input_data.get("action")
         if action in ["create_event", "reschedule_event"]:
+            if input_data.get("is_approved"):
+                event_id = input_data.get("event_id") or f"evt_{uuid.uuid4().hex[:12]}"
+                return ToolResult(
+                    success=True,
+                    data={
+                        "event_id": event_id,
+                        "title": input_data.get("title", "Event"),
+                        "start_time": input_data.get("start_time", "2026-10-31T10:00:00Z"),
+                        "end_time": input_data.get("end_time", "2026-10-31T11:00:00Z"),
+                        "status": "CONFIRMED",
+                    },
+                )
             return ToolResult(
                 success=True,
                 requires_approval=True,
