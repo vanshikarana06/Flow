@@ -8,7 +8,7 @@ class CalendarTool(BaseTool):
     parameters_schema = {
         "type": "object",
         "properties": {
-            "action": {"type": "string", "enum": ["check_availability", "create_event", "reschedule_event"]},
+            "action": {"type": "string", "enum": ["check_availability", "create_event", "reschedule_event", "detect_conflicts"]},
             "start_time": {"type": "string", "format": "date-time"},
             "end_time": {"type": "string", "format": "date-time"},
             "title": {"type": "string"},
@@ -18,17 +18,19 @@ class CalendarTool(BaseTool):
     }
 
     async def execute(self, input_data: Dict[str, Any], user_id: uuid.UUID) -> ToolResult:
-        action = input_data.get("action")
+        action = input_data.get("action", "check_availability")
         if action in ["create_event", "reschedule_event"]:
             if input_data.get("is_approved"):
                 event_id = input_data.get("event_id") or f"evt_{uuid.uuid4().hex[:12]}"
+                start_time = input_data.get("start_time") or "2026-10-31T10:00:00Z"
+                end_time = input_data.get("end_time") or "2026-10-31T11:00:00Z"
                 return ToolResult(
                     success=True,
                     data={
-                        "event_id": event_id,
+                        "event_id": str(event_id),
                         "title": input_data.get("title", "Event"),
-                        "start_time": input_data.get("start_time", "2026-10-31T10:00:00Z"),
-                        "end_time": input_data.get("end_time", "2026-10-31T11:00:00Z"),
+                        "start_time": start_time,
+                        "end_time": end_time,
                         "status": "CONFIRMED",
                     },
                 )
@@ -42,4 +44,3 @@ class CalendarTool(BaseTool):
                 },
             )
         return ToolResult(success=True, data={"status": "AVAILABLE", "slots": []})
-
