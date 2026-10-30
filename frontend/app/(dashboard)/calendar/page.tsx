@@ -20,6 +20,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { FadeIn } from "@/components/ui/motion-primitives";
+import { BorderBeam } from "@/components/ui/border-beam";
+import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { mockCalendarEvents } from "@/lib/mock-data";
 import { useCopilotStore } from "@/stores/use-copilot-store";
 import { useApprovalStore } from "@/stores/use-approval-store";
@@ -90,26 +92,28 @@ export default function CalendarPage() {
             </button>
           </div>
 
-          <Button
+          <ShimmerButton
             onClick={() => setShowPreviewModal(true)}
-            size="sm"
-            className="text-xs font-semibold gap-1.5 bg-[#D97736] hover:bg-[#B95727] text-white"
+            shimmerColor="rgba(255, 255, 255, 0.45)"
+            background="#D97736"
+            className="h-8 gap-1.5 px-3"
           >
             <Sparkles size={13} />
             <span>AI Scheduling Preview</span>
-          </Button>
+          </ShimmerButton>
         </div>
       </div>
 
-      {/* Reclaim-Style Conflict Radar Bar */}
-      <div className="p-3.5 rounded-xl border border-[#F9E2BE] bg-[#FEF8ED] flex flex-wrap items-center justify-between gap-3 text-xs shadow-2xs">
-        <div className="flex items-center gap-2 text-[#C58A32]">
+      {/* Reclaim-Style Conflict Radar Bar (With Magic UI BorderBeam) */}
+      <div className="relative overflow-hidden p-3.5 rounded-xl border border-[#F9E2BE] bg-[#FEF8ED] flex flex-wrap items-center justify-between gap-3 text-xs shadow-2xs">
+        <BorderBeam size={160} duration={10} colorFrom="#D97736" colorTo="#C58A32" />
+        <div className="flex items-center gap-2 text-[#C58A32] relative z-10">
           <AlertTriangle size={15} className="shrink-0" />
           <span>
             <strong>Schedule Collision:</strong> Sprint Demo Review overlaps with 1:1 Aditya at 02:00 PM today.
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 relative z-10">
           <Button
             onClick={() => setShowPreviewModal(true)}
             size="sm"

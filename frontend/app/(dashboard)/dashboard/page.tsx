@@ -28,6 +28,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { FlowAgentOrb } from "@/components/ui/flow-agent-orb";
 import { FadeIn, StaggerContainer, StaggerItem } from "@/components/ui/motion-primitives";
+import { BorderBeam } from "@/components/ui/border-beam";
+import { ShimmerButton } from "@/components/ui/shimmer-button";
+import { PromptInput } from "@/components/ui/prompt-input";
 import { mockCalendarEvents, mockLedger, mockApprovals, mockInitialPlan } from "@/lib/mock-data";
 import { useCopilotStore } from "@/stores/use-copilot-store";
 import { useApprovalStore } from "@/stores/use-approval-store";
@@ -86,21 +89,23 @@ export default function DashboardPage() {
           </Button>
 
           <Link href="/approvals">
-            <Button
-              size="sm"
-              className="text-xs font-semibold gap-1.5 bg-[#D97736] hover:bg-[#B95727] text-white shadow-xs"
+            <ShimmerButton
+              shimmerColor="rgba(255, 255, 255, 0.45)"
+              background="#D97736"
+              className="h-8 gap-1.5 px-3"
             >
               <ShieldAlert size={13} />
               <span>Review Decisions ({pendingApprovals.length})</span>
-            </Button>
+            </ShimmerButton>
           </Link>
         </div>
       </div>
 
-      {/* 2. Priority Action Required Banner (When Collision/Decisions Exist) */}
+      {/* 2. Priority Action Required Banner (With Magic UI BorderBeam) */}
       {pendingApprovals.length > 0 && (
-        <div className="rounded-xl border border-[#F9E2BE] bg-[#FEF8ED] p-4 flex flex-wrap items-center justify-between gap-3 text-xs shadow-soft transition-all">
-          <div className="flex items-start gap-3">
+        <div className="relative rounded-xl border border-[#F9E2BE] bg-[#FEF8ED] p-4 flex flex-wrap items-center justify-between gap-3 text-xs shadow-soft transition-all overflow-hidden">
+          <BorderBeam size={180} duration={10} colorFrom="#D97736" colorTo="#C58A32" />
+          <div className="flex items-start gap-3 relative z-10">
             <div className="p-1.5 rounded-lg bg-[#FEF8ED] border border-[#F9E2BE] text-[#C58A32] shrink-0 mt-0.5">
               <AlertTriangle size={16} />
             </div>
@@ -111,7 +116,7 @@ export default function DashboardPage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 relative z-10">
             <Button
               onClick={() => setShowPlanModal(true)}
               size="sm"
@@ -153,57 +158,16 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            {/* Input Composer Field */}
-            <form onSubmit={handleCockpitSubmit} className="relative rounded-xl border border-[#E8DFD1] bg-[#FFFCF6] shadow-card focus-within:border-[#D97736] focus-within:ring-2 focus-within:ring-[#D97736]/20 transition-all p-2.5">
-              <textarea
-                rows={2}
-                value={cockpitInput}
-                onChange={(e) => setCockpitInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask FLOW to resolve today's schedule collision, draft an email, or decompose a task goal..."
-                className="w-full bg-transparent text-xs text-[#29251F] placeholder:text-[#A39B8E] focus:outline-none resize-none leading-relaxed px-1 min-h-[44px]"
-              />
-
-              <div className="flex items-center justify-between pt-2 border-t border-[#E8DFD1]/50 text-[11px] text-[#777064]">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="p-1 rounded-md text-[#777064] hover:text-[#29251F] hover:bg-[#F1EADF] transition-colors"
-                    title="Attach Context from Calendar, Email, or Tasks"
-                  >
-                    <Paperclip size={14} />
-                  </button>
-                  <span className="hidden sm:inline text-[10px]">
-                    Press <kbd className="font-mono bg-[#F1EADF] px-1 py-0.5 rounded border border-[#E8DFD1]">Enter ↵</kbd> to dispatch, <kbd className="font-mono bg-[#F1EADF] px-1 py-0.5 rounded border border-[#E8DFD1]">Shift+Enter</kbd> for newline
-                  </span>
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={!cockpitInput.trim() || isGenerating}
-                  size="sm"
-                  className="h-7 text-xs font-semibold gap-1.5 bg-[#D97736] hover:bg-[#B95727] disabled:opacity-40 text-white"
-                >
-                  <span>Dispatch Instruction</span>
-                  <ArrowUp size={12} />
-                </Button>
-              </div>
-            </form>
-
-            {/* Quick Contextual Dispatches */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] scrollbar-none">
-              <span className="text-[#777064] font-medium text-[10px] uppercase font-mono mr-1">Suggestions:</span>
-              {quickPrompts.map((item, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => submitPrompt(item.prompt)}
-                  className="whitespace-nowrap px-2.5 py-1 rounded-full bg-[#F1EADF] hover:bg-[#E5DCCE] text-[#777064] hover:text-[#29251F] border border-[#E8DFD1] transition-colors"
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
+            {/* 21st.dev Integrated Prompt Input */}
+            <PromptInput
+              value={cockpitInput}
+              onChange={setCockpitInput}
+              onSubmit={handleCockpitSubmit}
+              isGenerating={isGenerating}
+              suggestions={quickPrompts}
+              onSelectSuggestion={(prompt) => submitPrompt(prompt)}
+              placeholder="Ask FLOW to resolve today's schedule collision, draft an email, or decompose a task goal..."
+            />
           </div>
         </div>
       </div>

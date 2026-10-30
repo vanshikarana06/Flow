@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FadeIn } from "@/components/ui/motion-primitives";
+import { DecryptedText } from "@/components/ui/decrypted-text";
 import { mockLedger } from "@/lib/mock-data";
 
 export default function ActivityPage() {
@@ -141,7 +142,9 @@ export default function ActivityPage() {
                     <div className="flex items-center justify-between gap-1.5">
                       <div className="flex items-center gap-1.5 truncate">
                         <span className="text-[#777064]">Receipt Hash:</span>
-                        <span className="text-[#D97736] truncate font-semibold">{item.receipt.receiptHash}</span>
+                        <span className="text-[#D97736] truncate font-semibold">
+                          <DecryptedText text={item.receipt.receiptHash} speed={30} characters="0123456789abcdef" />
+                        </span>
                       </div>
                       <button
                         onClick={() => copyReceiptHash(item.receipt!.receiptHash, item.id)}

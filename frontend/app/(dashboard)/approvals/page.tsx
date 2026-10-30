@@ -26,6 +26,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FadeIn } from "@/components/ui/motion-primitives";
+import { CardSpotlight } from "@/components/ui/card-spotlight";
+import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { useApprovalStore } from "@/stores/use-approval-store";
 import { ApprovalItem } from "@/lib/types";
 
@@ -121,22 +123,22 @@ export default function ApprovalsPage() {
           )}
 
           {pendingApprovals.length > 0 && (
-            <Button
-              size="sm"
-              variant="default"
-              className="text-xs font-semibold gap-1.5 bg-[#D97736] hover:bg-[#B95727] text-white"
+            <ShimmerButton
+              shimmerColor="rgba(255, 255, 255, 0.45)"
+              background="#D97736"
+              className="h-8 gap-1.5 px-3"
               onClick={() => {
                 pendingApprovals.forEach((a) => approveAction(a.id));
               }}
             >
               <Check size={13} />
               <span>Batch Authorize All ({pendingApprovals.length})</span>
-            </Button>
+            </ShimmerButton>
           )}
         </div>
       </div>
 
-      {/* Review Cards (GitHub PR Review Archetype in Cream & Orange) */}
+      {/* Review Cards (GitHub PR Review Archetype in Cream & Orange with Aceternity CardSpotlight) */}
       <FadeIn className="space-y-4">
         {approvals.map((item) => {
           const isPending = item.status === "pending";
@@ -145,21 +147,8 @@ export default function ApprovalsPage() {
           const isCompleted = item.status === "completed";
           const isRejected = item.status === "rejected";
 
-          return (
-            <Card
-              key={item.id}
-              className={`border transition-all duration-200 overflow-hidden shadow-soft ${
-                isPending
-                  ? "border-[#F9E2BE] bg-[#FFFCF6]"
-                  : isCompleted
-                  ? "border-[#CDE3D5] bg-[#EDF5F0]/20"
-                  : isExecuting
-                  ? "border-[#D97736]/40 bg-[#FFFCF6]"
-                  : isRejected
-                  ? "border-[#E8DFD1] bg-[#F1EADF]/30 opacity-60"
-                  : "border-[#E8DFD1] bg-[#FFFCF6]"
-              }`}
-            >
+          const cardContent = (
+            <div className="overflow-hidden rounded-xl">
               {/* Card Meta Bar */}
               <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 border-b border-[#E8DFD1] bg-[#F8F4EC]/70 text-xs">
                 <div className="flex items-center gap-2">
@@ -347,6 +336,36 @@ export default function ApprovalsPage() {
                   </Button>
                 </CardFooter>
               )}
+            </div>
+          );
+
+          if (isPending) {
+            return (
+              <CardSpotlight
+                key={item.id}
+                color="rgba(217, 119, 54, 0.08)"
+                radius={320}
+                className="border-[#F9E2BE] bg-[#FFFCF6]"
+              >
+                {cardContent}
+              </CardSpotlight>
+            );
+          }
+
+          return (
+            <Card
+              key={item.id}
+              className={`border transition-all duration-200 overflow-hidden shadow-soft ${
+                isCompleted
+                  ? "border-[#CDE3D5] bg-[#EDF5F0]/20"
+                  : isExecuting
+                  ? "border-[#D97736]/40 bg-[#FFFCF6]"
+                  : isRejected
+                  ? "border-[#E8DFD1] bg-[#F1EADF]/30 opacity-60"
+                  : "border-[#E8DFD1] bg-[#FFFCF6]"
+              }`}
+            >
+              {cardContent}
             </Card>
           );
         })}

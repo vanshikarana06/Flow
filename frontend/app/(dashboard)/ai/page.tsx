@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FlowAgentOrb } from "@/components/ui/flow-agent-orb";
 import { FadeIn } from "@/components/ui/motion-primitives";
+import { PromptInput } from "@/components/ui/prompt-input";
 import { useCopilotStore } from "@/stores/use-copilot-store";
 import { useApprovalStore } from "@/stores/use-approval-store";
 
@@ -265,59 +266,18 @@ export default function AiStudioPage() {
         </div>
       </div>
 
-      {/* 3. Sticky ChatGPT-Style Bottom Composer (Anchored to Chat Container) */}
+      {/* 3. Sticky Bottom Composer (21st.dev Prompt Input) */}
       <div className="border-t border-[#E8DFD1] bg-[#FFFCF6] p-3.5 md:p-4 shrink-0">
-        <div className="max-w-3xl mx-auto space-y-2.5">
-          {/* Quick Prompt Suggestion Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] scrollbar-none">
-            {promptChips.map((chip, idx) => (
-              <button
-                key={idx}
-                onClick={() => submitPrompt(chip)}
-                className="whitespace-nowrap px-2.5 py-1 rounded-full bg-[#F1EADF] hover:bg-[#E5DCCE] text-[#777064] hover:text-[#29251F] border border-[#E8DFD1] transition-colors"
-              >
-                {chip}
-              </button>
-            ))}
-          </div>
-
-          {/* Multiline Textarea Composer Container */}
-          <div className="relative rounded-xl border border-[#E8DFD1] bg-[#FFFCF6] shadow-card focus-within:border-[#D97736] focus-within:ring-2 focus-within:ring-[#D97736]/20 transition-all p-2.5">
-            <textarea
-              ref={textareaRef}
-              rows={1}
-              value={inputVal}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask FLOW to schedule, draft an email, or coordinate tasks..."
-              className="w-full bg-transparent text-xs text-[#29251F] placeholder:text-[#A39B8E] focus:outline-none resize-none leading-relaxed min-h-[36px] max-h-[140px] px-1"
-            />
-
-            <div className="flex items-center justify-between pt-1.5 border-t border-[#E8DFD1]/50 text-[11px] text-[#777064]">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="p-1 rounded-md text-[#777064] hover:text-[#29251F] hover:bg-[#F1EADF] transition-colors"
-                  title="Attach Context from Calendar, Email, or Tasks"
-                >
-                  <Paperclip size={14} />
-                </button>
-                <span className="hidden sm:inline text-[10px]">
-                  Press <kbd className="font-mono bg-[#F1EADF] px-1 py-0.5 rounded border border-[#E8DFD1]">Enter ↵</kbd> to send, <kbd className="font-mono bg-[#F1EADF] px-1 py-0.5 rounded border border-[#E8DFD1]">Shift+Enter</kbd> for newline
-                </span>
-              </div>
-
-              {/* Orange Send Button */}
-              <button
-                onClick={handleSubmit}
-                disabled={!inputVal.trim() || isGenerating}
-                className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#D97736] hover:bg-[#B95727] disabled:opacity-40 text-white shadow-2xs transition-all active:scale-95"
-                title="Send Instruction"
-              >
-                <ArrowUp size={14} />
-              </button>
-            </div>
-          </div>
+        <div className="max-w-3xl mx-auto">
+          <PromptInput
+            value={inputVal}
+            onChange={setInputVal}
+            onSubmit={handleSubmit}
+            isGenerating={isGenerating}
+            placeholder="Ask FLOW to schedule, draft an email, or coordinate tasks..."
+            suggestions={promptChips.map((c) => ({ label: c, prompt: c }))}
+            onSelectSuggestion={(prompt) => submitPrompt(prompt)}
+          />
         </div>
       </div>
     </div>
