@@ -96,7 +96,7 @@ class AgentOrchestrator:
         # 7. Return Dispatch Result (Strictly NO Execution)
         return OrchestratorDispatchResult(
             plan_id=str(saved_plan.id),
-            status=initial_status,
+            status=saved_plan.status,
             intent=plan.intent,
             goal=plan.goal,
             steps=[s.model_dump() for s in plan.steps],

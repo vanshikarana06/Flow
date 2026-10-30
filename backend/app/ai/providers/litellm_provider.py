@@ -2,60 +2,75 @@ import json
 import logging
 import re
 from typing import Dict, Any, Optional, List, Type, TypeVar
-import httpx
-from pydantic import BaseModel
+import litellm
+from pydantic import BaseModel, ValidationError
+
 from app.core.config import get_settings
+
+# Disable litellm verbose telemetry
+litellm.telemetry = False
 
 logger = logging.getLogger("flow.ai.litellm")
 T = TypeVar("T", bound=BaseModel)
 
 class LiteLLMProvider:
     """
-    Production-grade LiteLLM client for FLOW OS.
-    Connects to LiteLLM Proxy (OpenAI-compatible) and handles:
-    - Chat completions with temperature and token controls
-    - Structured JSON generation with Pydantic validation
-    - Robust retry logic with exponential backoff
-    - Configurable timeouts
+    Production-grade client utilizing the LiteLLM Python SDK directly.
+    Bypasses LiteLLM Proxy to communicate directly with Ollama.
+
+    Features:
+    - Direct LiteLLM SDK calls via litellm.acompletion
+    - Native support for ollama/qwen3:8b
+    - Strict structured JSON schema validation with Pydantic
+    - Automatic validation retry loop with model feedback
+    - Clean markdown fence and bracket extraction
     """
 
     def __init__(
         self,
-        base_url: Optional[str] = None,
-        api_key: Optional[str] = None,
+        api_base: Optional[str] = None,
         model: Optional[str] = None,
         timeout_seconds: Optional[float] = None,
         max_retries: Optional[int] = None,
     ):
         settings = get_settings()
-        self.base_url = (base_url or settings.LITELLM_BASE_URL).rstrip("/")
-        self.api_key = api_key or settings.LITELLM_API_KEY
-        self.model = model or settings.LITELLM_MODEL
-        self.timeout = timeout_seconds or (settings.LITELLM_TIMEOUT_MS / 1000.0)
-        self.max_retries = max_retries or settings.LITELLM_MAX_RETRIES
+        self.api_base = (
+            api_base 
+            or getattr(settings, "OLLAMA_API_BASE", None) 
+            or getattr(settings, "LITELLM_BASE_URL", "http://localhost:11434")
+        ).rstrip("/")
+        
+        # Ensure model is formatted for Ollama if not prefixed
+        model_name = model or getattr(settings, "LITELLM_MODEL", "ollama/qwen3:8b")
+        if not model_name.startswith("ollama/") and not "/" in model_name:
+            model_name = f"ollama/{model_name}"
+        self.model = model_name
 
-    def _get_headers(self) -> Dict[str, str]:
-        headers = {
-            "Content-Type": "application/json",
-        }
-        if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
-        return headers
+        self.timeout = timeout_seconds or (getattr(settings, "LITELLM_TIMEOUT_MS", 30000) / 1000.0)
+        self.max_retries = max_retries or getattr(settings, "LITELLM_MAX_RETRIES", 3)
 
     def _extract_json_text(self, raw_text: str) -> str:
         """
-        Cleans markdown code fences (```json ... ```) from LLM output.
+        Cleans markdown code fences (```json ... ```) and extracts outermost JSON object.
         """
         text = raw_text.strip()
-        # Extract from ```json ... ``` or ``` ... ```
+        # 1. Match code block
         match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
         if match:
-            return match.group(1).strip()
-        # Or look for outermost { ... }
+            text = match.group(1).strip()
+        
+        # 2. Extract outermost braces
         start = text.find("{")
         end = text.rfind("}")
         if start != -1 and end != -1 and end > start:
             return text[start : end + 1]
+        
+        # 3. Check for array brackets
+        start_arr = text.find("[")
+        end_arr = text.rfind("]")
+        if start_arr != -1 and end_arr != -1 and end_arr > start_arr:
+            return text[start_arr : end_arr + 1]
+
         return text
 
     async def chat_completion(
@@ -63,42 +78,33 @@ class LiteLLMProvider:
         messages: List[Dict[str, str]],
         temperature: float = 0.1,
         max_tokens: int = 2048,
-        response_format: Optional[Dict[str, str]] = None,
+        format: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Calls LiteLLM /chat/completions endpoint with retries.
+        Executes completion directly via the LiteLLM SDK.
         """
-        endpoint = f"{self.base_url}/chat/completions"
-        if not endpoint.startswith("http"):
-            endpoint = f"http://{endpoint}"
-
-        payload: Dict[str, Any] = {
-            "model": self.model,
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        }
-        if response_format:
-            payload["response_format"] = response_format
-
-        headers = self._get_headers()
         last_exception = None
-
         for attempt in range(1, self.max_retries + 1):
             try:
-                async with httpx.AsyncClient(timeout=self.timeout) as client:
-                    response = await client.post(endpoint, json=payload, headers=headers)
-                    if response.status_code == 200:
-                        return response.json()
-                    
-                    logger.warning(
-                        f"LiteLLM attempt {attempt}/{self.max_retries} returned HTTP {response.status_code}: {response.text[:200]}"
-                    )
+                response = await litellm.acompletion(
+                    model=self.model,
+                    messages=messages,
+                    api_base=self.api_base,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    timeout=self.timeout,
+                    format=format,
+                )
+                return response
             except Exception as e:
                 last_exception = e
-                logger.warning(f"LiteLLM attempt {attempt}/{self.max_retries} failed: {type(e).__name__} {e}")
+                logger.warning(
+                    f"LiteLLM SDK attempt {attempt}/{self.max_retries} failed for {self.model}: {type(e).__name__}: {e}"
+                )
 
-        raise RuntimeError(f"LiteLLM chat_completion failed after {self.max_retries} attempts: {last_exception}")
+        raise RuntimeError(
+            f"LiteLLM SDK completion failed after {self.max_retries} attempts on {self.model}: {last_exception}"
+        )
 
     async def generate(
         self,
@@ -113,7 +119,7 @@ class LiteLLMProvider:
         messages.append({"role": "user", "content": prompt})
 
         data = await self.chat_completion(messages, temperature=temperature, max_tokens=max_tokens)
-        return data["choices"][0]["message"]["content"]
+        return data.choices[0].message.content
 
     async def generate_structured(
         self,
@@ -124,26 +130,56 @@ class LiteLLMProvider:
     ) -> T:
         """
         Forces JSON generation and parses the result into a typed Pydantic model.
+        Includes automatic retry loop with model feedback on malformed JSON or validation errors.
         """
+        schema_json = json.dumps(schema_cls.model_json_schema(), indent=2)
         json_instruction = (
-            f"\nYou MUST respond with ONLY a valid JSON object strictly matching this schema:\n"
-            f"{json.dumps(schema_cls.model_json_schema(), indent=2)}\n"
-            f"Do not include any conversational text outside the JSON."
+            f"\nYou MUST respond with ONLY a valid JSON instance conforming to the following JSON schema:\n"
+            f"{schema_json}\n"
+            f"IMPORTANT: Generate the concrete JSON data instance, NOT the schema definition itself. "
+            f"Do NOT output '$schema', '$defs', or schema metadata. Output ONLY valid JSON containing the populated fields."
         )
-        full_system_prompt = (system_prompt or "") + json_instruction
+        base_system = (system_prompt or "").strip()
+        full_system = f"{base_system}\n{json_instruction}".strip()
 
-        messages = [
-            {"role": "system", "content": full_system_prompt.strip()},
+        conversation = [
+            {"role": "system", "content": full_system},
             {"role": "user", "content": prompt},
         ]
 
-        data = await self.chat_completion(
-            messages,
-            temperature=temperature,
-            response_format={"type": "json_object"},
-        )
-        raw_content = data["choices"][0]["message"]["content"]
-        clean_json_str = self._extract_json_text(raw_content)
+        last_error = None
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                resp = await self.chat_completion(
+                    conversation,
+                    temperature=temperature,
+                    format="json",
+                )
+                raw_text = resp.choices[0].message.content
+                clean_json = self._extract_json_text(raw_text)
 
-        parsed_dict = json.loads(clean_json_str)
-        return schema_cls.model_validate(parsed_dict)
+                parsed_dict = json.loads(clean_json)
+                if isinstance(parsed_dict, dict) and ("$schema" in parsed_dict or "$defs" in parsed_dict):
+                    raise ValueError("Model returned JSON schema definition instead of an actual data instance.")
+
+                validated_model = schema_cls.model_validate(parsed_dict)
+                return validated_model
+
+            except (json.JSONDecodeError, ValidationError, ValueError) as err:
+                last_error = err
+                logger.warning(
+                    f"Structured validation failed on attempt {attempt}/{self.max_retries}: {err}. Retrying with feedback."
+                )
+                # Feed error back to model for correction in next turn
+                conversation.append({"role": "assistant", "content": raw_text if 'raw_text' in locals() else ""})
+                conversation.append({
+                    "role": "user",
+                    "content": f"Your response was not valid data: {err}. Please provide ONLY a valid JSON data instance conforming to the schema (not the schema definition itself)."
+                })
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Error during structured generation attempt {attempt}/{self.max_retries}: {e}")
+
+        raise ValueError(
+            f"Failed to generate valid structured output matching {schema_cls.__name__} after {self.max_retries} attempts: {last_error}"
+        )

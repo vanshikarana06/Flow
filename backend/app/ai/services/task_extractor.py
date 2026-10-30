@@ -40,3 +40,4 @@ class TaskExtractor:
                 deadline=None,
                 priority=priority,
             )
+

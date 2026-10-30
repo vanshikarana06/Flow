@@ -49,3 +49,4 @@ async def test_email_summary_fallback():
 
     assert result.priority == "HIGH"
     assert len(result.action_items) >= 1
+

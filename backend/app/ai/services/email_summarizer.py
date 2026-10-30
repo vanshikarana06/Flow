@@ -45,3 +45,4 @@ class EmailSummarizer:
                 action_items=[f"Review email conversation regarding {subject}."],
                 priority="HIGH" if is_urgent else "MEDIUM",
             )
+

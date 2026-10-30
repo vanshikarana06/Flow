@@ -1,7 +1,7 @@
 import hashlib
 import logging
-from typing import List, Optional, Dict, Any
-import httpx
+from typing import List, Optional
+import litellm
 from app.core.config import get_settings
 
 logger = logging.getLogger("flow.ai.embeddings")
@@ -9,26 +9,33 @@ logger = logging.getLogger("flow.ai.embeddings")
 class EmbeddingProvider:
     """
     Vector Embedding Provider compatible with pgvector Vector(1536).
-    Supports:
-    - LiteLLM Proxy /embeddings endpoint
-    - Ollama /api/embeddings
-    - Vector normalization to 1536 dimensions
-    - Deterministic fallback for test environments
+    Uses LiteLLM SDK directly with model: ollama/nomic-embed-text.
+
+    Features:
+    - Direct LiteLLM SDK calls via litellm.aembedding
+    - Normalization and padding to 1536 dimensions for Supabase pgvector
+    - Safe deterministic fallback when service is offline or during testing
     """
 
     TARGET_DIMENSION = 1536
 
     def __init__(
         self,
-        base_url: Optional[str] = None,
-        api_key: Optional[str] = None,
+        api_base: Optional[str] = None,
         model: Optional[str] = None,
         timeout_seconds: float = 15.0,
     ):
         settings = get_settings()
-        self.base_url = (base_url or settings.LITELLM_BASE_URL).rstrip("/")
-        self.api_key = api_key or settings.LITELLM_API_KEY
-        self.model = model or settings.LITELLM_EMBEDDING_MODEL
+        self.api_base = (
+            api_base 
+            or getattr(settings, "OLLAMA_API_BASE", None) 
+            or getattr(settings, "LITELLM_BASE_URL", "http://localhost:11434")
+        ).rstrip("/")
+        
+        raw_model = model or getattr(settings, "LITELLM_EMBEDDING_MODEL", "ollama/nomic-embed-text")
+        if not raw_model.startswith("ollama/") and not "/" in raw_model:
+            raw_model = f"ollama/{raw_model}"
+        self.model = raw_model
         self.timeout = timeout_seconds
 
     def _normalize_dimension(self, vector: List[float], target_dim: int = 1536) -> List[float]:
@@ -58,37 +65,33 @@ class EmbeddingProvider:
 
     async def get_embedding(self, text: str) -> List[float]:
         """
-        Retrieves embedding vector for text string.
+        Retrieves embedding vector for text string via LiteLLM SDK.
         """
-        endpoint = f"{self.base_url}/embeddings"
-        if not endpoint.startswith("http"):
-            endpoint = f"http://{endpoint}"
-
-        headers = {"Content-Type": "application/json"}
-        if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
-
-        payload = {
-            "model": self.model,
-            "input": text,
-        }
-
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                res = await client.post(endpoint, json=payload, headers=headers)
-                if res.status_code == 200:
-                    data = res.json()
-                    raw_vec = data["data"][0]["embedding"]
-                    return self._normalize_dimension(raw_vec, self.TARGET_DIMENSION)
-                logger.warning(f"Embedding request returned HTTP {res.status_code}, using fallback vector.")
+            resp = await litellm.aembedding(
+                model=self.model,
+                input=[text],
+                api_base=self.api_base,
+                timeout=self.timeout,
+            )
+            raw_vec = resp.data[0]["embedding"]
+            return self._normalize_dimension(raw_vec, self.TARGET_DIMENSION)
         except Exception as e:
-            logger.debug(f"Embedding service unreachable ({e}), using deterministic vector fallback.")
-
-        return self._generate_deterministic_fallback(text)
+            logger.debug(f"LiteLLM SDK embedding unreachable for {self.model} ({e}), using deterministic vector fallback.")
+            return self._generate_deterministic_fallback(text)
 
     async def get_embeddings(self, texts: List[str]) -> List[List[float]]:
-        results = []
-        for text in texts:
-            vec = await self.get_embedding(text)
-            results.append(vec)
-        return results
+        try:
+            resp = await litellm.aembedding(
+                model=self.model,
+                input=texts,
+                api_base=self.api_base,
+                timeout=self.timeout,
+            )
+            return [
+                self._normalize_dimension(item["embedding"], self.TARGET_DIMENSION)
+                for item in resp.data
+            ]
+        except Exception as e:
+            logger.debug(f"LiteLLM SDK batch embedding failed ({e}), using deterministic fallback.")
+            return [self._generate_deterministic_fallback(t) for t in texts]

@@ -110,3 +110,4 @@ async def test_llm_planner_fallback_on_unreachable(registry):
     assert len(plan.steps) == 1
     assert plan.steps[0].tool == "task_tool"
     assert plan.steps[0].action == "create_task"
+

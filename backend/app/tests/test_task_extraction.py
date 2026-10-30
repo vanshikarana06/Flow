@@ -56,3 +56,4 @@ async def test_embedding_provider_dimension_normalization():
     vec = await embedder.get_embedding("Aditya is my co-lead")
     assert len(vec) == 1536
     assert isinstance(vec[0], float)
+

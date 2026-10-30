@@ -60,11 +60,12 @@ class Settings(BaseSettings):
     APPSCRIPT_SECRET_KEY: str = "appscript_secret_default"
     APPSCRIPT_SHARED_SECRET: str = ""
 
-    # Local AI
-    LITELLM_BASE_URL: str = "http://localhost:4000"
+    # Local AI & LLM Settings (Direct LiteLLM SDK -> Ollama)
+    OLLAMA_API_BASE: str = "http://localhost:11434"
+    LITELLM_BASE_URL: str = "http://localhost:11434"
     LITELLM_API_KEY: str = "sk-litellm"
-    LITELLM_MODEL: str = "qwen2.5:7b-instruct"
-    LITELLM_EMBEDDING_MODEL: str = "text-embedding-nomic"
+    LITELLM_MODEL: str = "ollama/qwen3:8b"
+    LITELLM_EMBEDDING_MODEL: str = "ollama/nomic-embed-text"
     LITELLM_TIMEOUT_MS: int = 30000
     LITELLM_MAX_RETRIES: int = 3
 

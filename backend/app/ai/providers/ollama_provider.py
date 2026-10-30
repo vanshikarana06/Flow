@@ -61,3 +61,4 @@ class OllamaProvider:
         raw_content = data["message"]["content"]
         parsed = json.loads(raw_content)
         return schema_cls.model_validate(parsed)
+

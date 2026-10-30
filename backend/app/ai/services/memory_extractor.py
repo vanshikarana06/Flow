@@ -37,3 +37,4 @@ class MemoryExtractor:
                 entities={"raw": text.strip()},
                 importance_score=0.85,
             )
+

@@ -57,3 +57,4 @@ async def test_llm_intent_fallback_on_unreachable():
     assert result.intent == AgentIntent.CREATE_EVENT
     assert "attendee" in result.extracted_entities
     assert result.extracted_entities["attendee"] == "Sarah"
+
