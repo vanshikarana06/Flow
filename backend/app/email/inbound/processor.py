@@ -89,3 +89,4 @@ class InboundEmailProcessor:
             is_new_thread=is_new_thread,
             tasks_extracted=0,
         )
+

@@ -236,3 +236,4 @@ class EmailRepository(BaseRepository[EmailThread]):
         self.db.add(log)
         await self.db.flush()
         return log
+

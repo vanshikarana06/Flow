@@ -130,3 +130,4 @@ class EmailDeliveryLog(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     draft: Mapped["EmailDraft"] = relationship("EmailDraft", back_populates="delivery_log")
     message: Mapped[Optional["EmailMessage"]] = relationship("EmailMessage", back_populates="delivery_log")
     user: Mapped["User"] = relationship("User")
+

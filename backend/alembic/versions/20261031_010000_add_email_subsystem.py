@@ -139,3 +139,4 @@ def downgrade() -> None:
     op.execute("DROP TYPE IF EXISTS deliverystatus")
     op.execute("DROP TYPE IF EXISTS draftstatus")
     op.execute("DROP TYPE IF EXISTS emaildirection")
+

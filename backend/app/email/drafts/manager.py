@@ -93,3 +93,4 @@ class DraftManager:
 
     async def list_drafts(self, user_id: uuid.UUID, status: Optional[DraftStatus] = None) -> List[EmailDraft]:
         return await self.email_repo.list_drafts(user_id=user_id, status=status)
+

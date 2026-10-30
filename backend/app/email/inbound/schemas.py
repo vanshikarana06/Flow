@@ -1,5 +1,5 @@
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 class AttachmentPayload(BaseModel):
     filename: str
@@ -9,6 +9,8 @@ class AttachmentPayload(BaseModel):
     storage_path: Optional[str] = None
 
 class InboundEmailPayload(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     from_: str = Field(..., alias="from")
     to: List[str]
     cc: Optional[List[str]] = None
@@ -20,12 +22,10 @@ class InboundEmailPayload(BaseModel):
     attachments: Optional[List[AttachmentPayload]] = None
     message_id: Optional[str] = None
 
-    class Config:
-        populate_by_name = True
-
 class ProcessedEmailResult(BaseModel):
     thread_id: str
     message_id: str
     user_id: str
     is_new_thread: bool
     tasks_extracted: int = 0
+

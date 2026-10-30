@@ -52,3 +52,4 @@ class EmailService:
             approval_id=approval_id,
             user_id=user_id,
         )
+

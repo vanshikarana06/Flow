@@ -45,3 +45,4 @@ class ThreadService:
             last_message_at=thread.last_message_at,
             messages=messages,
         )
+

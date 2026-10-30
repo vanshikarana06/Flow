@@ -37,3 +37,4 @@ class InboundEmailParser:
         if len(snippet) > max_len:
             return snippet[:max_len] + "..."
         return snippet
+

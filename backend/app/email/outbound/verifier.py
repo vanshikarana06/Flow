@@ -60,3 +60,4 @@ class DeliveryVerifier:
         )
 
         return verification
+

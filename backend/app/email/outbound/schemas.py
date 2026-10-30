@@ -31,3 +31,4 @@ class OutboundDeliveryResult(BaseModel):
     proof_hash: Optional[str] = None
     status: str
     error: Optional[str] = None
+
