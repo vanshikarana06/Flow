@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { 
   Sparkles, 
   Send, 
@@ -9,15 +9,15 @@ import {
   ShieldCheck, 
   Bot, 
   User, 
-  Layers, 
-  Cpu, 
-  ArrowRight,
-  Terminal,
-  Zap
+  Terminal, 
+  Paperclip,
+  ArrowUp,
+  Zap,
+  CornerDownLeft,
+  ChevronRight,
+  Shield
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useCopilotStore } from "@/stores/use-copilot-store";
 import { useApprovalStore } from "@/stores/use-approval-store";
@@ -25,85 +25,120 @@ import { useApprovalStore } from "@/stores/use-approval-store";
 export default function AiStudioPage() {
   const { activePlan, messages, submitPrompt, isGenerating } = useCopilotStore();
   const { approveAction, rejectAction } = useApprovalStore();
+  
   const [inputVal, setInputVal] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleSend = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputVal.trim()) return;
-    submitPrompt(inputVal);
-    setInputVal("");
+  // Auto-scroll to bottom of messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isGenerating]);
+
+  // Handle textarea resize
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputVal(e.target.value);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 140)}px`;
+    }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!inputVal.trim() || isGenerating) return;
+    submitPrompt(inputVal);
+    setInputVal("");
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+  };
+
+  const promptChips = [
+    "Schedule 1:1 with Aditya at 4:00 PM",
+    "Draft reply regarding pgvector migrations",
+    "Audit calendar conflicts for today",
+    "List high priority tasks due today",
+  ];
+
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col rounded-xl border border-white/5 bg-card overflow-hidden shadow-2xl">
-      {/* Studio Header */}
-      <div className="p-4 border-b border-white/5 flex items-center justify-between bg-[#111827]/80">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 text-primary border border-primary/30">
-            <Sparkles size={16} />
+    <div className="flex flex-col h-[calc(100vh-6.5rem)] rounded-xl border border-[#E8DFD1] bg-[#FFFCF6] shadow-soft overflow-hidden">
+      {/* 1. Header Bar */}
+      <div className="flex h-12 items-center justify-between px-4 border-b border-[#E8DFD1] bg-[#FFFCF6] shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#FCEEE5] text-primary border border-[#F7D2BC]">
+            <Bot size={14} />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-white">AI Assistant Studio & Plan Visualizer</h2>
-            <p className="text-[10px] text-gray-400 font-mono">ChatGPT Naturalness + Cursor Plan Execution DAG</p>
+            <h2 className="text-xs font-semibold text-[#29251F]">FLOW Agentic Assistant</h2>
           </div>
         </div>
 
-        <Badge variant="verified" className="text-[10px]">
-          HITL Guardrails Active
-        </Badge>
+        <div className="flex items-center gap-2 text-[11px] text-[#777064]">
+          <span className="flex items-center gap-1 font-mono text-[#477A58]">
+            <Shield size={12} /> Verification Loop Active
+          </span>
+        </div>
       </div>
 
-      {/* Main Conversation & Plan Area */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-4xl mx-auto w-full">
-        {/* Sample Interaction Banner */}
-        <div className="p-4 rounded-xl border border-primary/20 bg-primary/[0.03] space-y-3">
-          <div className="flex items-center gap-2 text-xs font-semibold text-indigo-300">
-            <Bot size={15} />
-            <span>Interactive Multi-Step Execution DAG</span>
+      {/* 2. Vertically Scrolling Conversation Canvas */}
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-6 space-y-6">
+        <div className="max-w-3xl mx-auto space-y-6">
+          {/* Welcome & Philosophy Banner */}
+          <div className="rounded-xl border border-[#E8DFD1] bg-[#F8F4EC]/60 p-4 space-y-2 text-xs">
+            <div className="flex items-center gap-2 font-semibold text-[#29251F]">
+              <Sparkles size={14} className="text-primary" />
+              <span>Trust-First Agentic Reasoning</span>
+            </div>
+            <p className="text-[#777064] leading-relaxed">
+              FLOW interprets your natural language intent, orchestrates connected tools across Microsoft Graph, Gmail, and your task ledger, and stops for explicit human approval before executing consequential actions.
+            </p>
           </div>
 
-          <p className="text-xs text-gray-300 leading-relaxed">
-            When you instruct FLOW, it decomposes natural language into discrete tool actions across your connected integrations (Microsoft Graph, Gmail, Supabase, Task Store), staging consequential changes for human approval.
-          </p>
-
-          {/* Visual Plan DAG */}
+          {/* Active Plan DAG (Visual Execution Pipeline) */}
           {activePlan && (
-            <div className="rounded-xl border border-white/10 bg-[#0B0F14] p-4 space-y-3 font-sans">
-              <div className="flex items-center justify-between border-b border-white/5 pb-2 text-xs">
-                <span className="font-semibold text-white flex items-center gap-1.5">
+            <div className="rounded-xl border border-[#E8DFD1] bg-[#FFFCF6] p-4 space-y-3 shadow-2xs">
+              <div className="flex items-center justify-between border-b border-[#E8DFD1] pb-2 text-xs">
+                <span className="font-semibold text-[#29251F] flex items-center gap-1.5">
                   <Terminal size={14} className="text-primary" /> Goal: {activePlan.goal}
                 </span>
-                <span className="text-[10px] text-indigo-300 font-mono">
+                <Badge variant="outline" className="text-[10px] text-[#777064] font-mono">
                   Stage {activePlan.currentStepIndex} of {activePlan.steps.length}
-                </span>
+                </Badge>
               </div>
 
-              <div className="space-y-2">
-                {activePlan.steps.map((step, idx) => (
+              <div className="space-y-1.5">
+                {activePlan.steps.map((step) => (
                   <div
                     key={step.id}
-                    className={`flex items-start justify-between p-3 rounded-lg border text-xs transition-all ${
+                    className={`flex items-start justify-between p-2.5 rounded-lg border text-xs transition-all ${
                       step.status === "completed"
-                        ? "bg-white/[0.02] border-white/5 text-gray-300"
+                        ? "bg-[#F1EADF]/30 border-[#E8DFD1] text-[#777064]"
                         : step.status === "waiting_approval"
-                        ? "bg-amber-500/10 border-amber-500/40 text-amber-200"
-                        : "bg-transparent border-dashed border-gray-700 text-gray-500"
+                        ? "bg-[#FEF8ED] border-[#F9E2BE] text-[#C58A32]"
+                        : "bg-transparent border-dashed border-[#D0C4B2] text-[#A39B8E]"
                     }`}
                   >
-                    <div className="flex items-start gap-2.5">
+                    <div className="flex items-start gap-2">
                       <div className="mt-0.5">
                         {step.status === "completed" ? (
-                          <CheckCircle2 size={15} className="text-emerald-400" />
+                          <CheckCircle2 size={14} className="text-[#477A58]" />
                         ) : step.status === "waiting_approval" ? (
-                          <Clock size={15} className="text-amber-400 animate-pulse" />
+                          <Clock size={14} className="text-[#C58A32] animate-pulse" />
                         ) : (
-                          <div className="h-3.5 w-3.5 rounded-full border border-gray-600" />
+                          <div className="h-3 w-3 rounded-full border border-[#D0C4B2]" />
                         )}
                       </div>
                       <div>
-                        <p className="font-medium">{step.description}</p>
-                        <p className="text-[10px] text-gray-500 font-mono mt-0.5">
-                          Tool: <span className="text-indigo-400">{step.tool}</span>
+                        <p className="font-medium text-[#29251F]">{step.description}</p>
+                        <p className="text-[10px] text-[#777064] font-mono mt-0.5">
+                          Tool: <span className="text-primary">{step.tool}</span>
                         </p>
                       </div>
                     </div>
@@ -122,8 +157,8 @@ export default function AiStudioPage() {
                         {step.status.replace("_", " ")}
                       </Badge>
                       {step.output && (
-                        <p className="text-[10px] text-gray-400 font-mono mt-1">
-                          {step.output}
+                        <p className="text-[10px] text-[#777064] font-mono mt-1">
+                          ↳ {step.output}
                         </p>
                       )}
                     </div>
@@ -131,14 +166,14 @@ export default function AiStudioPage() {
                 ))}
               </div>
 
-              {/* Action Staged Card */}
-              <div className="mt-3 p-3.5 rounded-lg border border-amber-500/40 bg-amber-500/[0.05] flex flex-wrap items-center justify-between gap-3 text-xs">
+              {/* In-Chat Decision Gate Card */}
+              <div className="mt-3 p-3.5 rounded-lg border border-[#F9E2BE] bg-[#FEF8ED] flex flex-wrap items-center justify-between gap-3 text-xs">
                 <div>
-                  <span className="font-semibold text-amber-300 flex items-center gap-1.5">
-                    <ShieldCheck size={14} /> Action Intercepted (#APPR-101)
+                  <span className="font-semibold text-[#C58A32] flex items-center gap-1.5">
+                    <ShieldCheck size={14} /> Human Approval Required (#APPR-101)
                   </span>
-                  <p className="text-[11px] text-gray-300 mt-0.5">
-                    Calendar reschedule & outbound email confirmation staged for human approval.
+                  <p className="text-[11px] text-[#777064] mt-0.5">
+                    Reschedule 1:1 with Aditya to 4:00 PM and send confirmation notice.
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -148,7 +183,7 @@ export default function AiStudioPage() {
                     className="h-7 text-xs font-semibold"
                     onClick={() => approveAction("appr_101")}
                   >
-                    Approve Action
+                    Approve & Execute
                   </Button>
                   <Button
                     size="sm"
@@ -162,61 +197,106 @@ export default function AiStudioPage() {
               </div>
             </div>
           )}
-        </div>
 
-        {/* Dynamic Messages */}
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex gap-3 text-xs ${
-              msg.sender === "user" ? "justify-end" : "justify-start"
-            }`}
-          >
-            {msg.sender === "flow" && (
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/20 text-primary border border-primary/30 font-bold">
-                F
-              </div>
-            )}
+          {/* Conversation Messages Stream */}
+          {messages.map((msg) => (
             <div
-              className={`rounded-xl p-3.5 max-w-xl leading-relaxed ${
-                msg.sender === "user"
-                  ? "bg-primary text-white"
-                  : "bg-[#0B0F14] border border-white/5 text-gray-200"
+              key={msg.id}
+              className={`flex gap-3 text-xs ${
+                msg.sender === "user" ? "justify-end" : "justify-start"
               }`}
             >
-              <p>{msg.text}</p>
-            </div>
-          </div>
-        ))}
+              {msg.sender === "flow" && (
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#FCEEE5] text-primary border border-[#F7D2BC] font-bold text-xs mt-0.5">
+                  F
+                </div>
+              )}
 
-        {isGenerating && (
-          <div className="flex items-center gap-2 text-xs text-primary animate-pulse">
-            <Sparkles size={14} />
-            <span>Agent synthesizing context and orchestrating tools...</span>
-          </div>
-        )}
+              <div
+                className={`rounded-xl p-3.5 max-w-xl leading-relaxed text-xs shadow-2xs ${
+                  msg.sender === "user"
+                    ? "bg-primary text-white rounded-br-none"
+                    : "bg-[#FFFCF6] border border-[#E8DFD1] text-[#29251F] rounded-bl-none"
+                }`}
+              >
+                <p className="whitespace-pre-line">{msg.text}</p>
+                <div
+                  className={`mt-1 text-[9px] font-mono text-right ${
+                    msg.sender === "user" ? "text-white/70" : "text-[#777064]"
+                  }`}
+                >
+                  {msg.timestamp}
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {isGenerating && (
+            <div className="flex items-center gap-2 text-xs text-primary animate-pulse py-2">
+              <Sparkles size={14} />
+              <span>Synthesizing context, querying Graph API, and staging plan...</span>
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
-      {/* Input Prompt Dock */}
-      <form onSubmit={handleSend} className="p-4 border-t border-white/5 bg-[#111827]/80">
-        <div className="max-w-4xl mx-auto relative flex items-center">
-          <Input
-            value={inputVal}
-            onChange={(e) => setInputVal(e.target.value)}
-            placeholder="Instruct FLOW (e.g. 'Schedule review with Aditya and email him the summary')..."
-            className="h-11 pr-12 text-xs bg-card-subtle border-white/10 placeholder:text-gray-500"
-          />
-          <Button
-            type="submit"
-            size="sm"
-            disabled={!inputVal.trim()}
-            className="absolute right-1.5 h-8 w-8 p-0"
-          >
-            <Send size={14} />
-          </Button>
+      {/* 3. Sticky ChatGPT-Style Bottom Composer */}
+      <div className="border-t border-[#E8DFD1] bg-[#FFFCF6] p-3.5 md:p-4 shrink-0">
+        <div className="max-w-3xl mx-auto space-y-2.5">
+          {/* Quick Prompt Suggestion Chips */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] scrollbar-none">
+            {promptChips.map((chip, idx) => (
+              <button
+                key={idx}
+                onClick={() => submitPrompt(chip)}
+                className="whitespace-nowrap px-2.5 py-1 rounded-full bg-[#F1EADF] hover:bg-[#E5DCCE] text-[#777064] hover:text-[#29251F] border border-[#E8DFD1] transition-colors"
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
+
+          {/* Multiline Composer Container */}
+          <div className="relative rounded-xl border border-[#E8DFD1] bg-[#FFFCF6] shadow-card focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all p-2.5">
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              value={inputVal}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask FLOW to schedule, draft an email, or coordinate tasks..."
+              className="w-full bg-transparent text-xs text-[#29251F] placeholder:text-[#A39B8E] focus:outline-none resize-none leading-relaxed min-h-[36px] max-h-[140px] px-1"
+            />
+
+            <div className="flex items-center justify-between pt-1.5 border-t border-[#E8DFD1]/50 text-[11px] text-[#777064]">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="p-1 rounded-md text-[#777064] hover:text-[#29251F] hover:bg-[#F1EADF] transition-colors"
+                  title="Attach Workspace Context"
+                >
+                  <Paperclip size={14} />
+                </button>
+                <span className="hidden sm:inline text-[10px]">
+                  Press <kbd className="font-mono bg-[#F1EADF] px-1 py-0.5 rounded border border-[#E8DFD1]">Enter ↵</kbd> to send, <kbd className="font-mono bg-[#F1EADF] px-1 py-0.5 rounded border border-[#E8DFD1]">Shift+Enter</kbd> for newline
+                </span>
+              </div>
+
+              {/* Orange Send Button */}
+              <button
+                onClick={handleSubmit}
+                disabled={!inputVal.trim() || isGenerating}
+                className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary hover:bg-primary-hover disabled:opacity-40 text-white shadow-2xs transition-all active:scale-95"
+                title="Send Message"
+              >
+                <ArrowUp size={14} />
+              </button>
+            </div>
+          </div>
         </div>
-      </form>
+      </div>
     </div>
   );
 }
-

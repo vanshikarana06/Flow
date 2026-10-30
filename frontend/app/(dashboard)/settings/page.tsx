@@ -2,22 +2,13 @@
 
 import React, { useState } from "react";
 import { 
-  Settings, 
-  ShieldCheck, 
-  Key, 
   Globe, 
-  Mail, 
-  Calendar, 
-  Lock, 
-  CheckCircle2, 
-  RefreshCw,
-  Bell,
-  Cpu
+  ShieldCheck, 
+  Lock 
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 
 export default function SettingsPage() {
   const [hitlEmail, setHitlEmail] = useState(true);
@@ -25,70 +16,70 @@ export default function SettingsPage() {
   const [hitlTask, setHitlTask] = useState(false);
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-5 max-w-3xl">
       {/* Settings Header */}
-      <div className="pb-2 border-b border-white/5">
-        <h2 className="text-xl font-bold tracking-tight text-white">System Settings & Guardrails</h2>
-        <p className="text-xs text-gray-400 mt-1">
-          Manage workspace integrations, Human-in-the-Loop approval policies, and cryptographic security credentials.
+      <div className="pb-3 border-b border-[#E8DFD1]">
+        <h2 className="text-base font-bold tracking-tight text-[#29251F]">System Settings & Guardrails</h2>
+        <p className="text-xs text-[#777064] mt-0.5">
+          Workspace integrations, Human-in-the-Loop decision policies, and security credentials.
         </p>
       </div>
 
-      {/* Section 1: Connected Workspaces & Integrations */}
-      <Card className="border-white/5 bg-card">
+      {/* Section 1: Connected Services */}
+      <Card className="border-[#E8DFD1] bg-[#FFFCF6]">
         <CardHeader>
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Globe size={16} className="text-primary" /> Connected Workspace Services
+          <CardTitle className="text-xs font-semibold flex items-center gap-2">
+            <Globe size={15} className="text-primary" /> Connected Workspace Services
           </CardTitle>
           <CardDescription>
             Third-party API connections managed via OAuth 2.0 PKCE.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2.5">
           {/* Microsoft 365 */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-card-subtle border border-white/5 text-xs">
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded bg-white/5 flex items-center justify-center font-bold text-blue-400">
+          <div className="flex items-center justify-between p-3 rounded-lg bg-[#F8F4EC]/60 border border-[#E8DFD1] text-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="h-7 w-7 rounded bg-[#FFFCF6] border border-[#E8DFD1] flex items-center justify-center font-bold text-xs text-blue-600">
                 M
               </div>
               <div>
-                <h4 className="font-semibold text-white">Microsoft 365 / Graph API</h4>
-                <p className="text-[10px] text-gray-400 font-mono">Mail.ReadWrite, Calendars.ReadWrite, Tasks.ReadWrite</p>
+                <h4 className="font-semibold text-[#29251F]">Microsoft 365 / Graph API</h4>
+                <p className="text-[10px] text-[#777064] font-mono">Mail, Calendar, Tasks</p>
               </div>
             </div>
-            <Badge variant="verified" className="text-[10px]">
+            <Badge variant="verified" className="text-[9px]">
               CONNECTED ✓
             </Badge>
           </div>
 
           {/* Google Workspace */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-card-subtle border border-white/5 text-xs">
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded bg-white/5 flex items-center justify-center font-bold text-red-400">
+          <div className="flex items-center justify-between p-3 rounded-lg bg-[#F8F4EC]/60 border border-[#E8DFD1] text-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="h-7 w-7 rounded bg-[#FFFCF6] border border-[#E8DFD1] flex items-center justify-center font-bold text-xs text-red-600">
                 G
               </div>
               <div>
-                <h4 className="font-semibold text-white">Google Workspace</h4>
-                <p className="text-[10px] text-gray-400 font-mono">Gmail API, Google Calendar API</p>
+                <h4 className="font-semibold text-[#29251F]">Google Workspace</h4>
+                <p className="text-[10px] text-[#777064] font-mono">Gmail API, Google Calendar API</p>
               </div>
             </div>
-            <Badge variant="verified" className="text-[10px]">
+            <Badge variant="verified" className="text-[9px]">
               CONNECTED ✓
             </Badge>
           </div>
 
           {/* Supabase Database */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-card-subtle border border-white/5 text-xs">
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded bg-white/5 flex items-center justify-center font-bold text-emerald-400">
+          <div className="flex items-center justify-between p-3 rounded-lg bg-[#F8F4EC]/60 border border-[#E8DFD1] text-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="h-7 w-7 rounded bg-[#FFFCF6] border border-[#E8DFD1] flex items-center justify-center font-bold text-xs text-[#477A58]">
                 S
               </div>
               <div>
-                <h4 className="font-semibold text-white">Supabase PostgreSQL 15+</h4>
-                <p className="text-[10px] text-gray-400 font-mono">pgvector extension, RLS policies active</p>
+                <h4 className="font-semibold text-[#29251F]">Supabase PostgreSQL 15+</h4>
+                <p className="text-[10px] text-[#777064] font-mono">pgvector extension, RLS policies</p>
               </div>
             </div>
-            <Badge variant="verified" className="text-[10px]">
+            <Badge variant="verified" className="text-[9px]">
               HEALTHY ✓
             </Badge>
           </div>
@@ -96,26 +87,26 @@ export default function SettingsPage() {
       </Card>
 
       {/* Section 2: Human-in-the-Loop Safety Policies */}
-      <Card className="border-white/5 bg-card">
+      <Card className="border-[#E8DFD1] bg-[#FFFCF6]">
         <CardHeader>
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <ShieldCheck size={16} className="text-amber-400" /> Human Decision Guardrail Policies
+          <CardTitle className="text-xs font-semibold flex items-center gap-2 text-[#C58A32]">
+            <ShieldCheck size={15} /> Human Decision Guardrail Policies
           </CardTitle>
           <CardDescription>
-            Specify which external mutations require explicit human approval before execution.
+            Specify which external mutations require human approval before execution.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3 text-xs">
+        <CardContent className="space-y-2.5 text-xs">
           {/* Email Policy */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-card-subtle border border-white/5">
+          <div className="flex items-center justify-between p-3 rounded-lg bg-[#F8F4EC]/60 border border-[#E8DFD1]">
             <div>
-              <h4 className="font-semibold text-white">Outbound Email Confirmation</h4>
-              <p className="text-[11px] text-gray-400">Require approval before dispatching emails to external parties.</p>
+              <h4 className="font-semibold text-[#29251F]">Outbound Email Confirmation</h4>
+              <p className="text-[11px] text-[#777064]">Require approval before sending emails to external parties.</p>
             </div>
             <Button
               size="sm"
               variant={hitlEmail ? "default" : "outline"}
-              className="h-7 text-xs"
+              className="h-6 text-[11px]"
               onClick={() => setHitlEmail(!hitlEmail)}
             >
               {hitlEmail ? "Enabled (Strict)" : "Disabled"}
@@ -123,15 +114,15 @@ export default function SettingsPage() {
           </div>
 
           {/* Calendar Policy */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-card-subtle border border-white/5">
+          <div className="flex items-center justify-between p-3 rounded-lg bg-[#F8F4EC]/60 border border-[#E8DFD1]">
             <div>
-              <h4 className="font-semibold text-white">Calendar Modifications & Rescheduling</h4>
-              <p className="text-[11px] text-gray-400">Require approval when moving or deleting meetings with multiple attendees.</p>
+              <h4 className="font-semibold text-[#29251F]">Calendar Rescheduling & Cancellations</h4>
+              <p className="text-[11px] text-[#777064]">Require approval when moving meetings with multiple attendees.</p>
             </div>
             <Button
               size="sm"
               variant={hitlCalendar ? "default" : "outline"}
-              className="h-7 text-xs"
+              className="h-6 text-[11px]"
               onClick={() => setHitlCalendar(!hitlCalendar)}
             >
               {hitlCalendar ? "Enabled (Strict)" : "Disabled"}
@@ -139,15 +130,15 @@ export default function SettingsPage() {
           </div>
 
           {/* Task Policy */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-card-subtle border border-white/5">
+          <div className="flex items-center justify-between p-3 rounded-lg bg-[#F8F4EC]/60 border border-[#E8DFD1]">
             <div>
-              <h4 className="font-semibold text-white">Task Creation & Priority Changes</h4>
-              <p className="text-[11px] text-gray-400">Allow agent to autonomously decompose and track tasks without prompt.</p>
+              <h4 className="font-semibold text-[#29251F]">Task Creation & Decomposition</h4>
+              <p className="text-[11px] text-[#777064]">Allow agent to autonomously decompose and track tasks.</p>
             </div>
             <Button
               size="sm"
               variant={hitlTask ? "default" : "secondary"}
-              className="h-7 text-xs"
+              className="h-6 text-[11px]"
               onClick={() => setHitlTask(!hitlTask)}
             >
               {hitlTask ? "Require Approval" : "Autonomous (Fast)"}

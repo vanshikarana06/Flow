@@ -7,15 +7,12 @@ import {
   Send, 
   CheckCircle2, 
   Clock, 
-  AlertTriangle, 
   ShieldCheck, 
-  ChevronRight,
   Maximize2,
   Minimize2,
   Bot
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useCopilotStore } from "@/stores/use-copilot-store";
 import { useApprovalStore } from "@/stores/use-approval-store";
@@ -29,8 +26,6 @@ export function AiCopilotPanel() {
     toggleDocked, 
     activePlan, 
     messages, 
-    inputValue, 
-    setInputValue, 
     submitPrompt,
     isGenerating 
   } = useCopilotStore();
@@ -50,82 +45,82 @@ export function AiCopilotPanel() {
   return (
     <aside
       className={cn(
-        "flex flex-col border-l border-white/5 bg-[#0D121B] z-30 transition-all duration-300 shadow-2xl",
-        isDocked ? "w-[360px] lg:w-[400px]" : "fixed right-4 bottom-4 top-16 w-[420px] rounded-xl border-white/10"
+        "flex flex-col border-l border-[#E8DFD1] bg-[#FFFCF6] z-30 transition-all duration-200 shadow-soft",
+        isDocked ? "w-[340px] lg:w-[380px]" : "fixed right-4 bottom-4 top-16 w-[400px] rounded-xl border-[#E8DFD1] shadow-elevated"
       )}
     >
       {/* Copilot Header */}
-      <div className="flex h-14 items-center justify-between px-4 border-b border-white/5 bg-[#111827]/60">
+      <div className="flex h-14 items-center justify-between px-3.5 border-b border-[#E8DFD1] bg-[#FFFCF6]">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/20 text-primary border border-primary/30">
-            <Sparkles size={14} />
+          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#FCEEE5] text-primary border border-[#F7D2BC]">
+            <Sparkles size={13} />
           </div>
           <div className="flex flex-col">
-            <span className="text-xs font-semibold text-white">FLOW Copilot</span>
-            <span className="text-[10px] text-emerald-400 font-mono">Agent Loop Ready</span>
+            <span className="text-xs font-semibold text-[#29251F]">FLOW Copilot</span>
+            <span className="text-[9px] text-[#477A58] font-mono leading-none">Guardrails Active</span>
           </div>
         </div>
 
         <div className="flex items-center gap-1">
           <button
             onClick={toggleDocked}
-            className="p-1 text-gray-400 hover:text-white rounded hover:bg-white/5"
+            className="p-1 text-[#777064] hover:text-[#29251F] rounded-md hover:bg-[#F1EADF]"
             title={isDocked ? "Float Window" : "Dock Window"}
           >
             {isDocked ? <Maximize2 size={13} /> : <Minimize2 size={13} />}
           </button>
           <button
             onClick={toggleOpen}
-            className="p-1 text-gray-400 hover:text-white rounded hover:bg-white/5"
+            className="p-1 text-[#777064] hover:text-[#29251F] rounded-md hover:bg-[#F1EADF]"
             title="Close Copilot (⌘J)"
           >
-            <X size={15} />
+            <X size={14} />
           </button>
         </div>
       </div>
 
       {/* Execution DAG & Message Stream */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-3.5 space-y-3.5 bg-[#F8F4EC]/40">
         {/* Active Multi-step Plan DAG View */}
         {activePlan && (
-          <div className="rounded-xl border border-primary/30 bg-primary/[0.04] p-3.5 space-y-3 shadow-sm">
+          <div className="rounded-xl border border-[#E8DFD1] bg-[#FFFCF6] p-3 space-y-2.5 shadow-2xs">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
-                <Bot size={13} /> Active Agent Plan
+              <span className="text-[10px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                <Bot size={12} /> Execution Plan
               </span>
-              <Badge variant="outline" className="text-[9px] border-primary/40 text-indigo-300">
+              <Badge variant="outline" className="text-[9px] border-[#E8DFD1] text-[#777064]">
                 Step {activePlan.currentStepIndex} of {activePlan.steps.length}
               </Badge>
             </div>
             
-            <p className="text-xs font-medium text-gray-200">{activePlan.goal}</p>
+            <p className="text-xs font-semibold text-[#29251F]">{activePlan.goal}</p>
 
-            <div className="space-y-1.5 pt-1">
-              {activePlan.steps.map((step, idx) => (
+            <div className="space-y-1 pt-0.5">
+              {activePlan.steps.map((step) => (
                 <div
                   key={step.id}
                   className={cn(
                     "flex items-start gap-2 rounded-lg p-2 text-xs transition-all",
                     step.status === "completed"
-                      ? "bg-white/[0.02] text-gray-400"
+                      ? "bg-[#F1EADF]/40 text-[#777064]"
                       : step.status === "waiting_approval"
-                      ? "bg-amber-500/10 border border-amber-500/30 text-amber-200 font-medium"
-                      : "text-gray-500"
+                      ? "bg-[#FEF8ED] border border-[#F9E2BE] text-[#C58A32] font-medium"
+                      : "text-[#A39B8E]"
                   )}
                 >
-                  <div className="mt-0.5">
+                  <div className="mt-0.5 shrink-0">
                     {step.status === "completed" ? (
-                      <CheckCircle2 size={13} className="text-emerald-400" />
+                      <CheckCircle2 size={13} className="text-[#477A58]" />
                     ) : step.status === "waiting_approval" ? (
-                      <Clock size={13} className="text-amber-400 animate-pulse" />
+                      <Clock size={13} className="text-[#C58A32] animate-pulse" />
                     ) : (
-                      <div className="h-3 w-3 rounded-full border border-gray-600" />
+                      <div className="h-3 w-3 rounded-full border border-[#D0C4B2]" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="truncate">{step.description}</p>
+                    <p className="truncate text-[11px]">{step.description}</p>
                     {step.output && (
-                      <p className="text-[10px] text-gray-400 font-mono mt-0.5 truncate">
+                      <p className="text-[9px] text-[#777064] font-mono mt-0.5 truncate">
                         ↳ {step.output}
                       </p>
                     )}
@@ -134,19 +129,19 @@ export function AiCopilotPanel() {
               ))}
             </div>
 
-            {/* Embedded Human Approval Trigger */}
-            <div className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 space-y-2">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-300">
-                <ShieldCheck size={14} /> Human Decision Required
+            {/* Embedded Human Decision Prompt */}
+            <div className="mt-2.5 rounded-lg border border-[#F9E2BE] bg-[#FEF8ED] p-2.5 space-y-1.5">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-[#C58A32]">
+                <ShieldCheck size={13} /> Decision Required
               </div>
-              <p className="text-[11px] text-gray-300">
-                Reschedule 1:1 with Aditya to 4:00 PM and send confirmation email.
+              <p className="text-[11px] text-[#777064]">
+                Reschedule 1:1 with Aditya to 4:00 PM and send confirmation notice.
               </p>
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex items-center gap-1.5 pt-1">
                 <Button
                   size="sm"
                   variant="success"
-                  className="h-7 text-xs flex-1 gap-1"
+                  className="h-6 text-[11px] flex-1 gap-1"
                   onClick={() => approveAction("appr_101")}
                 >
                   Approve
@@ -154,7 +149,7 @@ export function AiCopilotPanel() {
                 <Button
                   size="sm"
                   variant="destructive"
-                  className="h-7 text-xs px-2.5"
+                  className="h-6 text-[11px] px-2"
                   onClick={() => rejectAction("appr_101")}
                 >
                   Reject
@@ -169,57 +164,52 @@ export function AiCopilotPanel() {
           <div
             key={msg.id}
             className={cn(
-              "flex flex-col gap-1 max-w-[90%] text-xs",
+              "flex flex-col gap-1 max-w-[92%] text-xs",
               msg.sender === "user" ? "ml-auto items-end" : "mr-auto items-start"
             )}
           >
             <div
               className={cn(
-                "rounded-xl p-3 leading-relaxed",
+                "rounded-xl p-3 leading-relaxed shadow-2xs",
                 msg.sender === "user"
-                  ? "bg-primary text-white rounded-br-none shadow-md"
-                  : "bg-card border border-white/5 text-gray-200 rounded-bl-none shadow-sm"
+                  ? "bg-primary text-white rounded-br-none"
+                  : "bg-[#FFFCF6] border border-[#E8DFD1] text-[#29251F] rounded-bl-none"
               )}
             >
               {msg.text}
             </div>
-            <span className="text-[10px] text-gray-500 font-mono px-1">
+            <span className="text-[9px] text-[#777064] font-mono px-1">
               {msg.timestamp}
             </span>
           </div>
         ))}
 
         {isGenerating && (
-          <div className="flex items-center gap-2 text-xs text-indigo-400 animate-pulse">
-            <Sparkles size={14} />
-            <span>Agent reasoning & retrieving context...</span>
+          <div className="flex items-center gap-1.5 text-xs text-primary animate-pulse">
+            <Sparkles size={13} />
+            <span className="text-[11px]">Reasoning & retrieving context...</span>
           </div>
         )}
       </div>
 
       {/* Prompt Input Box */}
-      <form onSubmit={handleSubmit} className="p-3 border-t border-white/5 bg-[#111827]/40">
+      <form onSubmit={handleSubmit} className="p-3 border-t border-[#E8DFD1] bg-[#FFFCF6]">
         <div className="relative flex items-center">
-          <Input
+          <input
             value={localInput}
             onChange={(e) => setLocalInput(e.target.value)}
-            placeholder="Instruct FLOW (e.g. 'Schedule review with Aditya')..."
-            className="pr-10 text-xs bg-card-subtle border-white/10 placeholder:text-gray-500 focus-visible:ring-primary"
+            placeholder="Instruct FLOW (e.g. 'Move meeting to 4 PM')..."
+            className="w-full h-8 pl-3 pr-9 rounded-lg border border-[#E8DFD1] bg-[#F1EADF]/60 text-xs text-[#29251F] placeholder:text-[#A39B8E] focus:outline-none focus:border-primary"
           />
           <button
             type="submit"
             disabled={!localInput.trim()}
-            className="absolute right-2 p-1.5 text-primary hover:text-indigo-400 disabled:opacity-40 disabled:hover:text-primary transition-colors"
+            className="absolute right-1.5 p-1 rounded-md text-primary hover:text-primary-hover disabled:opacity-40"
           >
-            <Send size={14} />
+            <Send size={13} />
           </button>
-        </div>
-        <div className="flex items-center justify-between mt-2 px-1 text-[10px] text-gray-500">
-          <span>Proactive guardrails active</span>
-          <kbd className="font-mono">Enter to plan</kbd>
         </div>
       </form>
     </aside>
   );
 }
-

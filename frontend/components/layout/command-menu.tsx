@@ -4,7 +4,6 @@ import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
   Command,
-  CommandDialog,
   CommandEmpty,
   CommandGroup,
   CommandInput,
@@ -22,8 +21,8 @@ import {
   Brain, 
   Settings, 
   Sparkles,
-  Plus,
-  Zap
+  Zap,
+  Bot
 } from "lucide-react";
 import { useLayoutStore } from "@/stores/use-layout-store";
 import { useCopilotStore } from "@/stores/use-copilot-store";
@@ -56,83 +55,90 @@ export function CommandMenu() {
   if (!commandMenuOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/70 backdrop-blur-md">
-      <div className="relative w-full max-w-xl rounded-xl border border-white/10 bg-[#111827] shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-[#29251F]/40 backdrop-blur-xs p-4">
+      <div className="relative w-full max-w-lg rounded-xl border border-[#E8DFD1] bg-[#FFFCF6] shadow-elevated overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150">
         <Command className="w-full">
-          <div className="flex items-center border-b border-white/10 px-3">
+          <div className="flex items-center border-b border-[#E8DFD1] px-3.5">
             <CommandInput
-              placeholder="Type a command, jump to a view, or plan an action..."
-              className="h-12 w-full bg-transparent text-sm text-gray-200 placeholder:text-gray-500 focus:outline-none"
+              placeholder="Search views, actions, or instruct FLOW..."
+              className="h-11 w-full bg-transparent text-xs text-[#29251F] placeholder:text-[#A39B8E] focus:outline-none"
             />
-            <kbd className="text-[10px] text-gray-500 font-mono px-1.5 py-0.5 rounded border border-white/10">
+            <kbd className="text-[10px] text-[#777064] font-mono px-1.5 py-0.5 rounded border border-[#E8DFD1] bg-[#F1EADF]">
               ESC
             </kbd>
           </div>
 
-          <CommandList className="max-h-80 overflow-y-auto p-2 text-xs">
-            <CommandEmpty className="py-6 text-center text-gray-500">
+          <CommandList className="max-h-72 overflow-y-auto p-1.5 text-xs">
+            <CommandEmpty className="py-6 text-center text-xs text-[#777064]">
               No matching commands found.
             </CommandEmpty>
 
-            <CommandGroup heading="Quick Navigation" className="text-gray-400 font-medium px-2 py-1">
+            <CommandGroup heading="Navigation" className="text-[#777064] text-[10px] font-semibold uppercase tracking-wider px-2 py-1">
               <CommandItem
                 onSelect={() => handleSelect(() => router.push("/dashboard"))}
-                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-gray-200 hover:bg-white/5 cursor-pointer"
+                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[#29251F] hover:bg-[#F1EADF] cursor-pointer"
               >
-                <LayoutDashboard size={15} className="text-primary" />
-                <span>Go to Executive Dashboard</span>
+                <LayoutDashboard size={14} className="text-primary" />
+                <span>Executive Overview</span>
+              </CommandItem>
+              <CommandItem
+                onSelect={() => handleSelect(() => router.push("/ai"))}
+                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[#29251F] hover:bg-[#F1EADF] cursor-pointer"
+              >
+                <Bot size={14} className="text-primary" />
+                <span>AI Workspace & Chat</span>
               </CommandItem>
               <CommandItem
                 onSelect={() => handleSelect(() => router.push("/approvals"))}
-                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-gray-200 hover:bg-white/5 cursor-pointer"
+                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[#29251F] hover:bg-[#F1EADF] cursor-pointer"
               >
-                <ShieldCheck size={15} className="text-amber-400" />
-                <span>Open Approval Center</span>
+                <ShieldCheck size={14} className="text-[#C58A32]" />
+                <span>Approval Center (Review Staged Decisions)</span>
               </CommandItem>
               <CommandItem
                 onSelect={() => handleSelect(() => router.push("/inbox"))}
-                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-gray-200 hover:bg-white/5 cursor-pointer"
+                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[#29251F] hover:bg-[#F1EADF] cursor-pointer"
               >
-                <Inbox size={15} className="text-indigo-400" />
-                <span>Go to Unified Inbox</span>
+                <Inbox size={14} className="text-[#477A58]" />
+                <span>Unified Inbox</span>
               </CommandItem>
               <CommandItem
                 onSelect={() => handleSelect(() => router.push("/calendar"))}
-                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-gray-200 hover:bg-white/5 cursor-pointer"
+                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[#29251F] hover:bg-[#F1EADF] cursor-pointer"
               >
-                <Calendar size={15} className="text-emerald-400" />
-                <span>Go to Smart Calendar</span>
+                <Calendar size={14} className="text-primary" />
+                <span>Smart Calendar</span>
               </CommandItem>
               <CommandItem
                 onSelect={() => handleSelect(() => router.push("/activity"))}
-                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-gray-200 hover:bg-white/5 cursor-pointer"
+                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[#29251F] hover:bg-[#F1EADF] cursor-pointer"
               >
-                <History size={15} className="text-gray-400" />
-                <span>Inspect Activity Ledger</span>
+                <History size={14} className="text-[#777064]" />
+                <span>Activity Ledger & Receipts</span>
               </CommandItem>
             </CommandGroup>
 
-            <CommandSeparator className="my-1.5 h-px bg-white/5" />
+            <CommandSeparator className="my-1 h-px bg-[#E8DFD1]" />
 
-            <CommandGroup heading="Agent Actions" className="text-gray-400 font-medium px-2 py-1">
+            <CommandGroup heading="Agent Actions" className="text-[#777064] text-[10px] font-semibold uppercase tracking-wider px-2 py-1">
               <CommandItem
                 onSelect={() => handleSelect(() => {
-                  toggleCopilot();
-                  submitPrompt("Resolve the 2:00 PM calendar conflict with Aditya");
+                  router.push("/ai");
+                  submitPrompt("Resolve today's 2 PM calendar conflict with Aditya");
                 })}
-                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-gray-200 hover:bg-white/5 cursor-pointer"
+                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[#29251F] hover:bg-[#F1EADF] cursor-pointer"
               >
-                <Zap size={15} className="text-amber-400" />
+                <Zap size={14} className="text-primary" />
                 <span>Auto-Resolve Today's 2 PM Calendar Conflict</span>
               </CommandItem>
               <CommandItem
                 onSelect={() => handleSelect(() => {
-                  toggleCopilot();
-                  submitPrompt("Draft follow-up reply to Aditya's email regarding pgvector");
+                  router.push("/ai");
+                  submitPrompt("Draft reply to Aditya's email regarding pgvector migrations");
                 })}
-                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-gray-200 hover:bg-white/5 cursor-pointer"
+                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[#29251F] hover:bg-[#F1EADF] cursor-pointer"
               >
-                <Sparkles size={15} className="text-primary" />
+                <Sparkles size={14} className="text-primary" />
                 <span>Draft Reply for Inbound Email from Aditya</span>
               </CommandItem>
             </CommandGroup>
@@ -146,4 +152,3 @@ export function CommandMenu() {
     </div>
   );
 }
-

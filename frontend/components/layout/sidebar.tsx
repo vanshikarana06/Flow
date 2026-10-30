@@ -15,18 +15,20 @@ import {
   Sparkles,
   ChevronLeft,
   ChevronRight,
-  UserCheck
+  Shield,
+  Bot
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLayoutStore } from "@/stores/use-layout-store";
 import { useApprovalStore } from "@/stores/use-approval-store";
 
 export const navItems = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
+  { name: "AI Workspace", href: "/ai", icon: Bot, isAi: true },
+  { name: "Approvals", href: "/approvals", icon: ShieldCheck, isApproval: true },
   { name: "Inbox", href: "/inbox", icon: Inbox, badge: "3" },
   { name: "Calendar", href: "/calendar", icon: Calendar },
   { name: "Tasks", href: "/tasks", icon: CheckSquare },
-  { name: "Approvals", href: "/approvals", icon: ShieldCheck, isApproval: true },
   { name: "Activity", href: "/activity", icon: History },
   { name: "Memory", href: "/memory", icon: Brain },
   { name: "Settings", href: "/settings", icon: Settings },
@@ -42,34 +44,34 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "relative flex flex-col border-r border-white/5 bg-[#0B0F14] transition-all duration-300 ease-in-out select-none z-30",
-        sidebarCollapsed ? "w-[68px]" : "w-[240px]"
+        "relative flex flex-col border-r border-[#E8DFD1] bg-[#FFFCF6] transition-all duration-200 ease-in-out select-none z-30 shrink-0",
+        sidebarCollapsed ? "w-[64px]" : "w-[220px]"
       )}
     >
       {/* Brand Header */}
-      <div className="flex h-14 items-center justify-between px-4 border-b border-white/5">
+      <div className="flex h-14 items-center justify-between px-3.5 border-b border-[#E8DFD1]">
         <Link href="/dashboard" className="flex items-center gap-2.5 overflow-hidden">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-primary to-indigo-400 text-white font-bold text-sm shadow-md shadow-primary/20">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary text-white font-bold text-xs shadow-2xs">
             F
           </div>
           {!sidebarCollapsed && (
             <div className="flex flex-col">
-              <span className="font-semibold text-sm tracking-wide text-white">FLOW</span>
-              <span className="text-[10px] text-gray-500 font-mono">OS v2.0</span>
+              <span className="font-semibold text-xs tracking-tight text-[#29251F]">FLOW</span>
+              <span className="text-[10px] text-[#777064] font-mono leading-none">Trust-First OS</span>
             </div>
           )}
         </Link>
         <button
           onClick={toggleSidebar}
-          className="text-gray-500 hover:text-white p-1 rounded hover:bg-white/5 transition-colors"
+          className="text-[#777064] hover:text-[#29251F] p-1 rounded-md hover:bg-[#F1EADF] transition-colors"
           title={sidebarCollapsed ? "Expand Sidebar (⌘B)" : "Collapse Sidebar"}
         >
-          {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          {sidebarCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
         </button>
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex-1 space-y-1 p-2.5 overflow-y-auto">
+      <nav className="flex-1 space-y-0.5 p-2 overflow-y-auto">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           const Icon = item.icon;
@@ -80,28 +82,30 @@ export function Sidebar() {
               key={item.name}
               href={item.href}
               className={cn(
-                "group flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-all duration-150",
+                "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all duration-150",
                 isActive
-                  ? "bg-primary/15 text-white border border-primary/20 shadow-sm"
-                  : "text-gray-400 hover:bg-white/5 hover:text-gray-200"
+                  ? "bg-[#FCEEE5] text-[#B95727] font-semibold border border-[#F7D2BC]"
+                  : "text-[#777064] hover:bg-[#F1EADF] hover:text-[#29251F]"
               )}
               title={sidebarCollapsed ? item.name : undefined}
             >
               <Icon
-                size={18}
+                size={16}
                 className={cn(
                   "shrink-0 transition-colors",
-                  isActive ? "text-primary" : "text-gray-400 group-hover:text-gray-200"
+                  isActive
+                    ? "text-primary"
+                    : "text-[#777064] group-hover:text-[#29251F]"
                 )}
               />
               {!sidebarCollapsed && <span className="flex-1 truncate">{item.name}</span>}
               {!sidebarCollapsed && badgeCount && Number(badgeCount) > 0 && (
                 <span
                   className={cn(
-                    "ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold",
+                    "ml-auto flex h-4 min-w-[18px] items-center justify-center rounded-full px-1 text-[9px] font-bold font-mono",
                     item.isApproval
-                      ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse"
-                      : "bg-white/10 text-gray-300"
+                      ? "bg-[#FEF8ED] text-[#C58A32] border border-[#F9E2BE]"
+                      : "bg-[#F1EADF] text-[#777064]"
                   )}
                 >
                   {badgeCount}
@@ -113,22 +117,22 @@ export function Sidebar() {
       </nav>
 
       {/* User & Trust Profile Footer */}
-      <div className="border-t border-white/5 p-3">
+      <div className="border-t border-[#E8DFD1] p-2.5">
         <div
           className={cn(
-            "flex items-center gap-3 rounded-lg p-2 bg-white/[0.02] border border-white/5",
+            "flex items-center gap-2.5 rounded-lg p-2 bg-[#F1EADF]/60 border border-[#E8DFD1]",
             sidebarCollapsed ? "justify-center" : ""
           )}
         >
-          <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-950 text-emerald-400 border border-emerald-600/40 text-xs font-bold">
+          <div className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#EDF5F0] text-[#477A58] border border-[#CDE3D5] text-xs font-bold">
             VR
-            <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-[#0B0F14]" />
+            <span className="absolute bottom-0 right-0 h-1.5 w-1.5 rounded-full bg-[#477A58] ring-1 ring-[#FFFCF6]" />
           </div>
           {!sidebarCollapsed && (
             <div className="flex flex-col min-w-0 flex-1">
-              <span className="truncate text-xs font-medium text-gray-200">Vanshika Rana</span>
-              <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-mono">
-                <UserCheck size={10} /> Verified Tenant
+              <span className="truncate text-xs font-semibold text-[#29251F]">Vanshika Rana</span>
+              <span className="flex items-center gap-1 text-[9px] text-[#477A58] font-mono">
+                <Shield size={9} /> Verified Tenant
               </span>
             </div>
           )}
@@ -137,4 +141,3 @@ export function Sidebar() {
     </aside>
   );
 }
-

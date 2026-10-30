@@ -9,28 +9,26 @@ import {
   Calendar, 
   CheckSquare, 
   ShieldCheck, 
-  Sparkles 
+  Bot 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCopilotStore } from "@/stores/use-copilot-store";
 import { useApprovalStore } from "@/stores/use-approval-store";
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { toggleOpen, isOpen } = useCopilotStore();
   const { approvals } = useApprovalStore();
   const pendingCount = approvals.filter((a) => a.status === "pending").length;
 
   const mobileNav = [
-    { name: "Home", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
+    { name: "AI Chat", href: "/ai", icon: Bot },
+    { name: "Approvals", href: "/approvals", icon: ShieldCheck, badge: pendingCount },
     { name: "Inbox", href: "/inbox", icon: Inbox },
     { name: "Calendar", href: "/calendar", icon: Calendar },
-    { name: "Tasks", href: "/tasks", icon: CheckSquare },
-    { name: "Approvals", href: "/approvals", icon: ShieldCheck, badge: pendingCount },
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 flex h-14 items-center justify-around border-t border-white/5 bg-[#0B0F14]/95 px-2 backdrop-blur-lg md:hidden">
+    <div className="fixed bottom-0 left-0 right-0 z-40 flex h-14 items-center justify-around border-t border-[#E8DFD1] bg-[#FFFCF6]/95 px-2 backdrop-blur-md md:hidden">
       {mobileNav.map((item) => {
         const isActive = pathname.startsWith(item.href);
         const Icon = item.icon;
@@ -41,31 +39,19 @@ export function BottomNav() {
             href={item.href}
             className={cn(
               "relative flex flex-col items-center justify-center p-1 text-[10px] font-medium transition-colors",
-              isActive ? "text-primary" : "text-gray-400 hover:text-gray-200"
+              isActive ? "text-primary font-semibold" : "text-[#777064] hover:text-[#29251F]"
             )}
           >
-            <Icon size={18} />
+            <Icon size={17} />
             <span className="mt-0.5">{item.name}</span>
             {item.badge !== undefined && item.badge > 0 && (
-              <span className="absolute top-0 right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-black">
+              <span className="absolute top-0 right-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-primary text-[8px] font-bold text-white font-mono">
                 {item.badge}
               </span>
             )}
           </Link>
         );
       })}
-
-      <button
-        onClick={toggleOpen}
-        className={cn(
-          "flex flex-col items-center justify-center p-1 text-[10px] font-medium transition-colors",
-          isOpen ? "text-indigo-400" : "text-gray-400 hover:text-white"
-        )}
-      >
-        <Sparkles size={18} className="text-primary" />
-        <span className="mt-0.5">Copilot</span>
-      </button>
     </div>
   );
 }
-

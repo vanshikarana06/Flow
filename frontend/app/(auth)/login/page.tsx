@@ -1,17 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { 
-  ShieldCheck, 
-  Sparkles, 
-  Mail, 
-  ArrowRight, 
-  Lock, 
   CheckCircle2, 
   Cpu, 
-  Fingerprint 
+  Fingerprint, 
+  Lock, 
+  Mail, 
+  ArrowRight 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,61 +36,61 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 items-center z-10">
+    <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-center z-10">
       {/* Left: Product Manifesto / Hero */}
       <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-primary to-indigo-400 text-white font-bold text-base shadow-lg shadow-primary/30">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#D97736] text-white font-bold text-base shadow-sm">
             F
           </div>
-          <span className="text-xl font-bold tracking-tight text-white">FLOW</span>
-          <Badge variant="outline" className="text-[10px] text-indigo-400 border-indigo-500/30">
+          <span className="text-xl font-bold tracking-tight text-[#29251F]">FLOW</span>
+          <Badge variant="outline" className="text-[10px] text-[#D97736] border-[#D97736]/30 bg-[#D97736]/5">
             v2.0
           </Badge>
         </div>
 
         <div className="space-y-3">
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white leading-tight">
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-[#29251F] leading-tight">
             Trust-First Agentic <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-primary to-purple-400">
+            <span className="text-[#D97736]">
               Productivity OS
             </span>
           </h1>
-          <p className="text-sm text-gray-400 leading-relaxed">
+          <p className="text-sm text-[#777064] leading-relaxed">
             Coordinating Email, Calendar, and Tasks through an agentic core that keeps you in control with explicit human approvals and verifiable outcomes.
           </p>
         </div>
 
         {/* 3 Core Trust Pillars */}
-        <div className="space-y-2.5 pt-2">
-          <div className="flex items-center gap-2.5 text-xs text-gray-300">
-            <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+        <div className="space-y-3 pt-2">
+          <div className="flex items-center gap-2.5 text-xs text-[#29251F]">
+            <CheckCircle2 size={16} className="text-[#477A58] shrink-0" />
             <span>Human-in-the-Loop decision guardrails before action execution</span>
           </div>
-          <div className="flex items-center gap-2.5 text-xs text-gray-300">
-            <Fingerprint size={16} className="text-indigo-400 shrink-0" />
+          <div className="flex items-center gap-2.5 text-xs text-[#29251F]">
+            <Fingerprint size={16} className="text-[#D97736] shrink-0" />
             <span>Cryptographic activity ledger with verified receipt hashes</span>
           </div>
-          <div className="flex items-center gap-2.5 text-xs text-gray-300">
-            <Cpu size={16} className="text-amber-400 shrink-0" />
+          <div className="flex items-center gap-2.5 text-xs text-[#29251F]">
+            <Cpu size={16} className="text-[#C58A32] shrink-0" />
             <span>Deep integrations with Microsoft Graph API and Google Workspace</span>
           </div>
         </div>
       </div>
 
-      {/* Right: Glassmorphic Auth Card */}
-      <div className="glass-panel-elevated rounded-2xl p-6 md:p-8 space-y-6">
+      {/* Right: Warm Auth Card */}
+      <div className="bg-[#FFFCF6] border border-[#E8DFD1] rounded-2xl p-6 md:p-8 space-y-6 shadow-sm">
         <div className="space-y-1 text-center sm:text-left">
-          <h2 className="text-lg font-bold text-white">Sign in to FLOW</h2>
-          <p className="text-xs text-gray-400">Choose your workspace identity provider</p>
+          <h2 className="text-lg font-bold text-[#29251F]">Sign in to FLOW</h2>
+          <p className="text-xs text-[#777064]">Choose your workspace identity provider</p>
         </div>
 
         {/* OAuth Buttons */}
         <div className="space-y-3">
           <Button
             onClick={() => handleOAuthLogin("google")}
-            variant="secondary"
-            className="w-full justify-center gap-3 h-10 border border-white/10 hover:border-white/20 text-xs font-semibold"
+            variant="outline"
+            className="w-full justify-center gap-3 h-10 border-[#E8DFD1] bg-[#F1EADF]/40 hover:bg-[#F1EADF] text-[#29251F] text-xs font-semibold"
             disabled={isLoading}
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24">
@@ -119,8 +116,8 @@ export default function LoginPage() {
 
           <Button
             onClick={() => handleOAuthLogin("microsoft")}
-            variant="secondary"
-            className="w-full justify-center gap-3 h-10 border border-white/10 hover:border-white/20 text-xs font-semibold"
+            variant="outline"
+            className="w-full justify-center gap-3 h-10 border-[#E8DFD1] bg-[#F1EADF]/40 hover:bg-[#F1EADF] text-[#29251F] text-xs font-semibold"
             disabled={isLoading}
           >
             <svg className="h-4 w-4" viewBox="0 0 23 23">
@@ -135,8 +132,8 @@ export default function LoginPage() {
 
         {/* Divider */}
         <div className="relative flex items-center justify-center">
-          <div className="w-full border-t border-white/10" />
-          <span className="absolute bg-[#111827] px-2 text-[10px] text-gray-500 uppercase tracking-widest">
+          <div className="w-full border-t border-[#E8DFD1]" />
+          <span className="absolute bg-[#FFFCF6] px-2.5 text-[10px] text-[#777064] uppercase tracking-wider">
             or passwordless email
           </span>
         </div>
@@ -144,19 +141,19 @@ export default function LoginPage() {
         {/* Magic Link Form */}
         <form onSubmit={handleEmailLogin} className="space-y-3">
           <div className="relative">
-            <Mail size={14} className="absolute left-3 top-3 text-gray-500" />
+            <Mail size={14} className="absolute left-3 top-3 text-[#777064]" />
             <Input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@company.com"
-              className="pl-9 h-10 text-xs"
+              className="pl-9 h-10 text-xs bg-[#F8F4EC] border-[#E8DFD1] text-[#29251F] placeholder:text-[#777064]/70"
             />
           </div>
 
           <Button
             type="submit"
-            className="w-full h-10 text-xs font-semibold gap-1.5"
+            className="w-full h-10 text-xs font-semibold gap-1.5 bg-[#D97736] hover:bg-[#B95727] text-white"
             disabled={isLoading}
           >
             <span>{isLoading ? "Signing in..." : "Send Magic Link"}</span>
@@ -165,12 +162,11 @@ export default function LoginPage() {
         </form>
 
         {/* Security Stamp */}
-        <div className="pt-2 flex items-center justify-center gap-1.5 text-[11px] text-gray-500">
-          <Lock size={12} className="text-emerald-400" />
+        <div className="pt-2 flex items-center justify-center gap-1.5 text-[11px] text-[#777064]">
+          <Lock size={12} className="text-[#477A58]" />
           <span>Zero-Knowledge Vault • OAuth 2.0 PKCE Protected</span>
         </div>
       </div>
     </div>
   );
 }
-

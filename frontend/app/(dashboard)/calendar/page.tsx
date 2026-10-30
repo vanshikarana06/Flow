@@ -8,13 +8,12 @@ import {
   Sparkles, 
   AlertTriangle, 
   Clock, 
-  Plus, 
   Zap,
   Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { mockCalendarEvents } from "@/lib/mock-data";
 import { useCopilotStore } from "@/stores/use-copilot-store";
 
@@ -29,46 +28,46 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-4">
-      {/* Calendar Control Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-white/5">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 border border-white/10 rounded-lg p-0.5 bg-card">
-            <button className="p-1.5 text-gray-400 hover:text-white rounded hover:bg-white/5">
-              <ChevronLeft size={16} />
+      {/* Calendar Header Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 border-b border-[#E8DFD1]">
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1 border border-[#E8DFD1] rounded-lg p-0.5 bg-[#FFFCF6] shadow-2xs">
+            <button className="p-1 text-[#777064] hover:text-[#29251F] rounded hover:bg-[#F1EADF]">
+              <ChevronLeft size={15} />
             </button>
-            <span className="px-3 text-xs font-semibold text-white">October 26 - 31, 2026</span>
-            <button className="p-1.5 text-gray-400 hover:text-white rounded hover:bg-white/5">
-              <ChevronRight size={16} />
+            <span className="px-2.5 text-xs font-semibold text-[#29251F]">October 26 - 31, 2026</span>
+            <button className="p-1 text-[#777064] hover:text-[#29251F] rounded hover:bg-[#F1EADF]">
+              <ChevronRight size={15} />
             </button>
           </div>
-          <Badge variant="outline" className="text-xs font-mono text-emerald-400 border-emerald-500/30">
-            Graph Calendar Synced
+          <Badge variant="verified" className="text-[10px]">
+            Graph Synced
           </Badge>
         </div>
 
         <div className="flex items-center gap-2">
-          {/* View Toggles */}
-          <div className="flex items-center bg-card-subtle p-1 rounded-lg border border-white/5">
+          {/* View Mode Toggle */}
+          <div className="flex items-center bg-[#F1EADF] p-0.5 rounded-lg border border-[#E8DFD1]">
             <button
               onClick={() => setViewMode("day")}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                viewMode === "day" ? "bg-primary text-white" : "text-gray-400 hover:text-white"
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                viewMode === "day" ? "bg-[#FFFCF6] text-[#29251F] shadow-2xs" : "text-[#777064]"
               }`}
             >
               Day
             </button>
             <button
               onClick={() => setViewMode("week")}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                viewMode === "week" ? "bg-primary text-white" : "text-gray-400 hover:text-white"
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                viewMode === "week" ? "bg-[#FFFCF6] text-[#29251F] shadow-2xs" : "text-[#777064]"
               }`}
             >
               Week
             </button>
             <button
               onClick={() => setViewMode("month")}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                viewMode === "month" ? "bg-primary text-white" : "text-gray-400 hover:text-white"
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                viewMode === "month" ? "bg-[#FFFCF6] text-[#29251F] shadow-2xs" : "text-[#777064]"
               }`}
             >
               Month
@@ -81,7 +80,7 @@ export default function CalendarPage() {
               submitPrompt("Optimize my schedule today: auto-resolve the 2 PM conflict and preserve focus blocks");
             }}
             size="sm"
-            className="text-xs font-semibold gap-1.5 bg-gradient-to-r from-primary to-indigo-500"
+            className="text-xs font-semibold gap-1.5"
           >
             <Sparkles size={13} />
             <span>AI Smart Reschedule</span>
@@ -90,9 +89,9 @@ export default function CalendarPage() {
       </div>
 
       {/* Conflict Radar Notification Bar */}
-      <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-2.5 text-amber-300">
-          <AlertTriangle size={16} className="text-amber-400 shrink-0" />
+      <div className="p-3 rounded-xl border border-[#F9E2BE] bg-[#FEF8ED] flex flex-wrap items-center justify-between gap-3 text-xs shadow-2xs">
+        <div className="flex items-center gap-2 text-[#C58A32]">
+          <AlertTriangle size={15} className="shrink-0" />
           <span>
             <strong>Schedule Conflict Detected:</strong> Partner Sync overlaps with 1:1 Aditya Review at 02:00 PM today.
           </span>
@@ -103,28 +102,28 @@ export default function CalendarPage() {
             submitPrompt("Reschedule sync with Aditya to 4 PM");
           }}
           size="sm"
-          variant="glass"
-          className="h-7 text-xs bg-amber-500 text-black font-semibold hover:bg-amber-400 gap-1 border-0"
+          variant="warning"
+          className="h-7 text-xs font-semibold gap-1"
         >
-          <Zap size={12} />
+          <Zap size={11} />
           <span>Resolve via Copilot</span>
         </Button>
       </div>
 
-      {/* Week Grid */}
-      <Card className="border-white/5 bg-card overflow-hidden shadow-2xl">
-        <div className="grid grid-cols-6 border-b border-white/5 bg-[#111827]/80 text-xs font-semibold text-gray-400">
-          <div className="p-3 border-r border-white/5 text-center">TIME</div>
-          <div className="p-3 border-r border-white/5 text-center">MON 27</div>
-          <div className="p-3 border-r border-white/5 text-center">TUE 28</div>
-          <div className="p-3 border-r border-white/5 text-center">WED 29</div>
-          <div className="p-3 border-r border-white/5 text-center">THU 30</div>
-          <div className="p-3 text-center bg-primary/10 text-white border-l border-primary/20">
+      {/* Week Grid in Warm Cream */}
+      <Card className="overflow-hidden border-[#E8DFD1] bg-[#FFFCF6] shadow-soft">
+        <div className="grid grid-cols-6 border-b border-[#E8DFD1] bg-[#F8F4EC]/80 text-xs font-semibold text-[#777064]">
+          <div className="p-2.5 border-r border-[#E8DFD1] text-center text-[10px]">TIME</div>
+          <div className="p-2.5 border-r border-[#E8DFD1] text-center text-[11px]">MON 27</div>
+          <div className="p-2.5 border-r border-[#E8DFD1] text-center text-[11px]">TUE 28</div>
+          <div className="p-2.5 border-r border-[#E8DFD1] text-center text-[11px]">WED 29</div>
+          <div className="p-2.5 border-r border-[#E8DFD1] text-center text-[11px]">THU 30</div>
+          <div className="p-2.5 text-center bg-[#FCEEE5]/60 text-[#B95727] border-l border-[#F7D2BC] font-bold text-[11px]">
             FRI 31 (TODAY)
           </div>
         </div>
 
-        <div className="divide-y divide-white/5">
+        <div className="divide-y divide-[#E8DFD1]/60">
           {timeSlots.map((time) => {
             const is9AM = time === "09:00 AM";
             const is10AM = time === "10:00 AM";
@@ -132,71 +131,71 @@ export default function CalendarPage() {
             const is4PM = time === "04:00 PM";
 
             return (
-              <div key={time} className="grid grid-cols-6 min-h-[72px] text-xs">
+              <div key={time} className="grid grid-cols-6 min-h-[68px] text-xs">
                 {/* Time Label */}
-                <div className="p-3 border-r border-white/5 text-gray-500 font-mono text-[11px]">
+                <div className="p-2.5 border-r border-[#E8DFD1] text-[#777064] font-mono text-[10px]">
                   {time}
                 </div>
 
-                {/* Days Mon - Thu Empty Grid Placeholders */}
-                <div className="p-2 border-r border-white/5 hover:bg-white/[0.01]" />
-                <div className="p-2 border-r border-white/5 hover:bg-white/[0.01]">
+                {/* Days Mon - Thu */}
+                <div className="p-1.5 border-r border-[#E8DFD1]/60" />
+                <div className="p-1.5 border-r border-[#E8DFD1]/60">
                   {is9AM && (
-                    <div className="p-2 rounded bg-white/5 border border-white/10 text-gray-300">
+                    <div className="p-1.5 rounded-md bg-[#F1EADF] text-[#29251F] border border-[#E8DFD1] text-[11px]">
                       Team Standup
                     </div>
                   )}
                 </div>
-                <div className="p-2 border-r border-white/5 hover:bg-white/[0.01]" />
-                <div className="p-2 border-r border-white/5 hover:bg-white/[0.01]">
+                <div className="p-1.5 border-r border-[#E8DFD1]/60" />
+                <div className="p-1.5 border-r border-[#E8DFD1]/60">
                   {is9AM && (
-                    <div className="p-2 rounded bg-white/5 border border-white/10 text-gray-300">
+                    <div className="p-1.5 rounded-md bg-[#F1EADF] text-[#29251F] border border-[#E8DFD1] text-[11px]">
                       Team Standup
                     </div>
                   )}
                 </div>
 
                 {/* Friday (Today Column) */}
-                <div className="p-2 bg-primary/[0.02] border-l border-primary/20">
+                <div className="p-1.5 bg-[#FCEEE5]/15 border-l border-[#F7D2BC]">
                   {is9AM && (
-                    <div className="p-2 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
-                      <p className="font-semibold text-xs">Team Standup & Alignment</p>
-                      <p className="text-[10px] text-emerald-400 font-mono">09:00 - 09:30 AM</p>
+                    <div className="p-1.5 rounded-md bg-[#EDF5F0] border border-[#CDE3D5] text-[#477A58]">
+                      <p className="font-semibold text-[11px]">Team Standup & Alignment</p>
+                      <p className="text-[9px] font-mono">09:00 - 09:30 AM</p>
                     </div>
                   )}
 
                   {is10AM && (
-                    <div className="p-2 rounded-lg bg-primary/20 border border-primary/40 text-indigo-200">
+                    <div className="p-1.5 rounded-md bg-[#FCEEE5] border border-[#F7D2BC] text-[#B95727]">
                       <span className="text-[9px] font-bold uppercase tracking-wider text-primary">
                         Focus Block 🧠
                       </span>
-                      <p className="font-semibold text-xs">Deep Work: Frontend Architecture</p>
-                      <p className="text-[10px] text-indigo-300 font-mono">10:00 AM - 12:00 PM</p>
+                      <p className="font-semibold text-[11px]">Deep Work: Frontend Refinement</p>
+                      <p className="text-[9px] font-mono">10:00 AM - 12:00 PM</p>
                     </div>
                   )}
 
                   {is2PM && (
-                    <div className="p-2 rounded-lg bg-amber-500/20 border-2 border-amber-500 text-amber-200 animate-pulse">
+                    <div className="p-1.5 rounded-md bg-[#FEF8ED] border-2 border-[#C58A32] text-[#C58A32] animate-pulse">
                       <div className="flex items-center justify-between">
-                        <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">
-                          Conflict Detected ⚠️
+                        <span className="text-[8px] font-bold uppercase tracking-wider">
+                          Conflict ⚠️
                         </span>
-                        <Badge variant="destructive" className="text-[8px] px-1 py-0">
+                        <Badge variant="destructive" className="text-[7px] px-1 py-0">
                           Overlap
                         </Badge>
                       </div>
-                      <p className="font-semibold text-xs text-white mt-1">Demo Sync vs 1:1 Aditya</p>
-                      <p className="text-[10px] text-amber-300 font-mono">02:00 - 03:00 PM</p>
+                      <p className="font-semibold text-[11px] text-[#29251F] mt-0.5">Demo vs 1:1 Aditya</p>
+                      <p className="text-[9px] font-mono">02:00 - 03:00 PM</p>
                     </div>
                   )}
 
                   {is4PM && (
-                    <div className="p-2 rounded-lg bg-indigo-500/15 border border-dashed border-indigo-400/50 text-indigo-200">
-                      <span className="text-[9px] font-semibold text-indigo-400 uppercase tracking-wider">
+                    <div className="p-1.5 rounded-md bg-[#F1EADF] border border-dashed border-[#D0C4B2] text-[#777064]">
+                      <span className="text-[8px] font-semibold text-primary uppercase">
                         ⚡ Staged Candidate Slot
                       </span>
-                      <p className="font-semibold text-xs">1:1 Aditya Review (Rescheduled)</p>
-                      <p className="text-[10px] text-indigo-300 font-mono">04:00 - 04:30 PM</p>
+                      <p className="font-semibold text-[11px] text-[#29251F]">1:1 Aditya Review</p>
+                      <p className="text-[9px] font-mono">04:00 - 04:30 PM</p>
                     </div>
                   )}
                 </div>
@@ -208,4 +207,3 @@ export default function CalendarPage() {
     </div>
   );
 }
-
