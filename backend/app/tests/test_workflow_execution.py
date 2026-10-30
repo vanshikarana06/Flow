@@ -140,3 +140,4 @@ async def test_api_workflow_rejects_pending_action():
     finally:
         app.dependency_overrides.pop(get_db, None)
         UserRepository.get_with_preferences = original_get_with_pref
+

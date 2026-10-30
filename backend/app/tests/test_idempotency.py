@@ -115,3 +115,4 @@ async def test_idempotency_guard_prevents_duplicate_execution():
         await guard.validate_for_execution(approval_id, user_id)
     assert exc.value.status_code == 409
     assert "already been executed" in exc.value.detail
+

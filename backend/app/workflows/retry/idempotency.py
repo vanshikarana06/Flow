@@ -69,3 +69,4 @@ class IdempotencyGuard:
             select(ExecutionLog).where(ExecutionLog.approval_id == approval_id)
         )
         return result.scalar_one_or_none()
+

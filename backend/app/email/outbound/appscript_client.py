@@ -18,6 +18,9 @@ class GoogleAppsScriptClient:
     async def send_email(self, request: OutboundEmailRequest) -> AppsScriptDeliveryResponse:
         url = self.settings.APPSCRIPT_WEBHOOK_URL
         payload = request.model_dump()
+        payload["secret"] = self.settings.APPSCRIPT_SECRET_KEY
+        payload["to"] = payload.get("recipient_to")
+        payload["body"] = payload.get("body_plain")
         signature = self._sign_payload(payload)
         payload["signature"] = signature
 
