@@ -56,3 +56,4 @@ class EventResponse(BaseModel):
     sync_status: str
     created_at: datetime
     updated_at: datetime
+

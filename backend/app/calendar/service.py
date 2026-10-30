@@ -144,3 +144,4 @@ class CalendarService:
             exclude_event_id=exclude_event_id,
             is_target_focus_block=is_target_focus_block,
         )
+
