@@ -59,3 +59,4 @@ class ActivityService:
             status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
             detail="Activity Ledger is strictly append-only: deletions are prohibited.",
         )
+

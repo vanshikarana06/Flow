@@ -398,3 +398,4 @@ async def test_trust_api_endpoints():
         UserRepository.get_with_preferences = original_get_with_pref
         ApprovalRepository.list_pending = original_list_pending
         ActivityRepository.list_by_user_and_type = original_list_act
+

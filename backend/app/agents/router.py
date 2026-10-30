@@ -1,59 +1,70 @@
-from fastapi import APIRouter, Depends
-from typing import Dict, Any, List
-from pydantic import BaseModel
-from app.auth.dependencies import get_current_user, AuthenticatedUser
+from fastapi import APIRouter, Depends, HTTPException, status
+import uuid
+from typing import Dict, Any, List, Optional
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.database.session import get_db
+from app.auth.dependencies import get_current_user, UserContext
 from app.shared.schemas.responses import StandardResponse
 from app.agents.tools.tool_registry import get_tool_registry
+from app.agents.orchestrator.orchestrator import AgentOrchestrator, OrchestratorDispatchResult
+from app.database.repositories.agent_plan_repo import AgentPlanRepository
+from app.core.exceptions import EntityNotFoundException
 
 router = APIRouter(prefix="/agents", tags=["Agent Orchestration"])
 
 class DispatchPromptRequest(BaseModel):
     prompt: str
 
-class PlanStepResponse(BaseModel):
-    step_id: str
-    tool: str
-    action: str
-    parameters: Dict[str, Any]
-    requires_approval: bool
+class ToolInfoResponse(BaseModel):
+    name: str
+    description: str
+    parameters_schema: Dict[str, Any]
 
-class DispatchResponse(BaseModel):
-    plan_id: str
+class AgentPlanDetailResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    user_id: uuid.UUID
     intent: str
-    steps: List[PlanStepResponse]
+    status: str
+    plan_json: Dict[str, Any]
 
-@router.post("/dispatch", response_model=StandardResponse[DispatchResponse])
+@router.post("/dispatch", response_model=StandardResponse[OrchestratorDispatchResult])
 async def dispatch_prompt(
     request: DispatchPromptRequest,
-    current_user: AuthenticatedUser = Depends(get_current_user),
+    current_user: UserContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    import uuid
-    mock_plan = DispatchResponse(
-        plan_id=str(uuid.uuid4()),
-        intent="SEND_EMAIL",
-        steps=[
-            PlanStepResponse(
-                step_id="step-1",
-                tool="memory_tool",
-                action="resolve_contact",
-                parameters={"query": "co-lead"},
-                requires_approval=False,
-            ),
-            PlanStepResponse(
-                step_id="step-2",
-                tool="email_tool",
-                action="send_email",
-                parameters={"recipient": "aditya@example.com", "subject": "Project Status Update"},
-                requires_approval=True,
-            ),
-        ],
+    orchestrator = AgentOrchestrator(db)
+    result = await orchestrator.dispatch(
+        prompt=request.prompt,
+        user_id=current_user.user_id,
     )
-    return StandardResponse(data=mock_plan)
+    return StandardResponse(data=result)
 
-@router.get("/tools", response_model=StandardResponse[List[Dict[str, Any]]])
-async def list_available_mcp_tools(
-    current_user: AuthenticatedUser = Depends(get_current_user),
+@router.get("/plans/{plan_id}", response_model=StandardResponse[AgentPlanDetailResponse])
+async def get_agent_plan(
+    plan_id: uuid.UUID,
+    current_user: UserContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    registry = get_tool_registry()
-    return StandardResponse(data=registry.get_mcp_definitions())
+    repo = AgentPlanRepository(db)
+    plan = await repo.get_plan(plan_id, current_user.user_id)
+    if not plan:
+        raise EntityNotFoundException(entity_name="AgentPlan", entity_id=str(plan_id))
+    return StandardResponse(data=AgentPlanDetailResponse.model_validate(plan))
 
+@router.get("/tools", response_model=StandardResponse[List[ToolInfoResponse]])
+async def list_tools():
+    registry = get_tool_registry()
+    tools = [
+        ToolInfoResponse(
+            name=t.name,
+            description=t.description,
+            parameters_schema=t.parameters_schema,
+        )
+        for t in registry.list_tools()
+    ]
+    return StandardResponse(data=tools)

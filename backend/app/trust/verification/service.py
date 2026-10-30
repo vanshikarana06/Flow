@@ -184,3 +184,4 @@ class VerificationEngine:
             timestamp=v_log.verified_at,
             evidence=v_log.verification_evidence,
         )
+
