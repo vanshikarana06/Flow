@@ -15,15 +15,28 @@ branch_labels = None
 depends_on = None
 
 def upgrade() -> None:
-    # 1. Create Enums if they don't exist
-    email_direction_enum = postgresql.ENUM("INBOUND", "OUTBOUND", name="emaildirection")
-    email_direction_enum.create(op.get_bind(), checkfirst=True)
-
-    draft_status_enum = postgresql.ENUM("DRAFT", "PENDING_APPROVAL", "APPROVED", "REJECTED", "SENT", name="draftstatus")
-    draft_status_enum.create(op.get_bind(), checkfirst=True)
-
-    delivery_status_enum = postgresql.ENUM("PENDING", "DELIVERED", "FAILED", name="deliverystatus")
-    delivery_status_enum.create(op.get_bind(), checkfirst=True)
+    # 1. Create Enums idempotently if they don't exist
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE emaildirection AS ENUM ('INBOUND', 'OUTBOUND');
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE draftstatus AS ENUM ('DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'SENT');
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE deliverystatus AS ENUM ('PENDING', 'DELIVERED', 'FAILED');
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;
+    """)
 
     # 2. Table: email_threads
     op.create_table(
@@ -49,7 +62,7 @@ def upgrade() -> None:
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("thread_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("email_threads.id", ondelete="CASCADE"), nullable=False),
         sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("direction", sa.Enum("INBOUND", "OUTBOUND", name="emaildirection"), nullable=False),
+        sa.Column("direction", postgresql.ENUM("INBOUND", "OUTBOUND", name="emaildirection", create_type=False), nullable=False),
         sa.Column("message_id_header", sa.String(255), nullable=True),
         sa.Column("in_reply_to_header", sa.String(255), nullable=True),
         sa.Column("references_header", sa.Text(), nullable=True),
@@ -85,7 +98,7 @@ def upgrade() -> None:
         sa.Column("subject", sa.String(500), nullable=False),
         sa.Column("body_plain", sa.Text(), nullable=False),
         sa.Column("body_html", sa.Text(), nullable=True),
-        sa.Column("status", sa.Enum("DRAFT", "PENDING_APPROVAL", "APPROVED", "REJECTED", "SENT", name="draftstatus"), nullable=False, server_default="DRAFT"),
+        sa.Column("status", postgresql.ENUM("DRAFT", "PENDING_APPROVAL", "APPROVED", "REJECTED", "SENT", name="draftstatus", create_type=False), nullable=False, server_default="DRAFT"),
         sa.Column("idempotency_key", sa.String(64), nullable=False, unique=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
@@ -119,7 +132,7 @@ def upgrade() -> None:
         sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
         sa.Column("endpoint_url", sa.String(1024), nullable=False),
         sa.Column("http_status", sa.Integer(), nullable=False),
-        sa.Column("delivery_status", sa.Enum("PENDING", "DELIVERED", "FAILED", name="deliverystatus"), nullable=False, server_default="PENDING"),
+        sa.Column("delivery_status", postgresql.ENUM("PENDING", "DELIVERED", "FAILED", name="deliverystatus", create_type=False), nullable=False, server_default="PENDING"),
         sa.Column("gmail_message_id", sa.String(255), nullable=True),
         sa.Column("gmail_thread_id", sa.String(255), nullable=True),
         sa.Column("response_payload", postgresql.JSONB(), nullable=True),
