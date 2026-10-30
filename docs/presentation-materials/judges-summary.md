@@ -305,3 +305,16 @@ Before sharing this summary:
 
 **Document status:** Draft.  
 **Finalization requirement:** Update implementation status and technical details using the actual working project before sharing with judges.
+
+---
+
+## 16. Technical Architecture & Stack Verification
+
+| Architecture Layer | Approved Component | Role & Deployment |
+| :--- | :--- | :--- |
+| **Frontend** | Next.js, React, Tailwind, Shadcn UI | Edge-deployed on Vercel |
+| **Backend** | NestJS, Node.js (TypeScript) | High-performance API on Render |
+| **Local AI Layer** | LiteLLM, Ollama (Qwen 2.5) | Self-hosted via secure Cloudflare Tunnel |
+| **Database** | Supabase (PostgreSQL + pgvector) | Relational persistence & vector memory |
+| **External Integrations** | Microsoft Graph API, Gmail API, Google Calendar API | Cross-platform mail, calendar, and task sync |
+| **Core Modules** | 10 Backend Modules | Auth, Agent, Memory, Email, Calendar, Tasks, Approvals, Verification, Activities, Dashboard |

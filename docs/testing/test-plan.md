@@ -724,3 +724,29 @@ The most important principles are:
 
 **Document status:** Draft test plan.  
 **Next action:** Map these test cases to the actual implemented modules and begin recording execution results.
+
+---
+
+## 15. System Architecture & Core Module Test Matrix
+
+The following test suites validate the 10 major backend modules and external integrations against the approved Source of Truth:
+
+### 15.1 Integration Test Suites
+| Test ID | Module Under Test | Target Integration | Scenario | Expected Outcome |
+| :--- | :--- | :--- | :--- | :--- |
+| **INT-01** | EmailModule | Microsoft Graph API | User approves sending email draft | Message sent via Graph /me/sendMail, HTTP 202 received, Sent Items verified |
+| **INT-02** | EmailModule | Gmail API | User converts email to task | Action items extracted, task inserted with source_email_id |
+| **INT-03** | CalendarModule | Microsoft Graph API | User reschedules conflicting event | Patch executed on /me/events/{id}, new start/end times verified |
+| **INT-04** | CalendarModule | Google Calendar API | Sync FLOW native calendar to Google | Event mirrored, external ID saved, conflict flags cleared |
+| **INT-05** | TasksModule | Microsoft To Do API | AI task breakdown of project | Parent task and subtasks created, order indices verified |
+| **INT-06** | AgentModule | LiteLLM / Qwen 2.5 | Multi-step prompt over Cloudflare Tunnel | Intent parsed, memory context injected, valid plan JSON returned |
+| **INT-07** | MemoryModule | Supabase + pgvector | Semantic behavioral search | Cosine similarity query returns closest behavioral pattern |
+
+### 15.2 Approval Center & Verification Engine Test Suites
+| Test ID | Component | Action | Test Case | Expected Outcome |
+| :--- | :--- | :--- | :--- | :--- |
+| **APPR-01** | ApprovalsModule | Approve | User clicks 'Approve' on pending meeting | Action status transitions to APPROVED; execution proceeds |
+| **APPR-02** | ApprovalsModule | Reject | User clicks 'Reject' on pending email | Action status transitions to REJECTED; execution aborted, logged |
+| **APPR-03** | ApprovalsModule | Modify | User edits subject line and clicks 'Approve' | Action payload updated, re-hashed, status set to MODIFIED_AND_APPROVED |
+| **VERIF-01** | VerificationModule | Email Sent Check | Check sent email existence | Verifier locates message in SentItems folder; status set to VERIFIED |
+| **VERIF-02** | VerificationModule | Duplicate Retry | Network timeout simulated on send | Idempotency key blocks duplicate call; prior state probed and adopted |

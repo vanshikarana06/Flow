@@ -1067,3 +1067,29 @@ The security boundary is enforced by the backend:
 external side effect unless the backend independently validates the
 request, confirms the user's authorization, and verifies the required
 approval for that exact action.
+
+
+------------------------------------------------------------------------
+
+## 13. System Architecture Security Synchronization
+
+To align with the FLOW System Architecture Source of Truth, the following platform-wide controls are enforced:
+
+### 13.1 Multi-Provider Authentication
+- **Microsoft Entra ID:** OAuth 2.0 Authorization Code Flow with PKCE for Microsoft 365 / Microsoft Graph.
+- **Google Identity:** OAuth 2.0 Authorization Code Flow with PKCE for Gmail and Google Calendar APIs.
+- Tokens for both providers are encrypted at rest using AES-256-GCM in Supabase Vault before storage.
+
+### 13.2 Database & Vector Security (Supabase & pgvector)
+- **Row Level Security (RLS):** All tables (users, 	asks, calendar_events, pproval_requests, ctivity_logs) enforce strict uth.uid() = user_id RLS policies.
+- **pgvector Embedding Isolation:** Semantic memory vectors in ehavioral_memories are partitioned strictly per user; cross-tenant vector similarity lookups are blocked at the PostgreSQL engine level.
+
+### 13.3 Local AI Layer Ingress (Cloudflare Tunnel)
+- The NestJS backend on Render communicates with the local AI host (LiteLLM / Ollama Qwen 2.5) exclusively over an encrypted Cloudflare Tunnel.
+- No public ports are opened on the local AI workstation.
+- Mutual TLS and Cloudflare Service Tokens authenticate backend requests to the LiteLLM proxy.
+
+### 13.4 Approval Center Cryptographic Integrity
+- Approval tokens are generated using UUIDv4 paired with SHA-256 hashes of the proposed payload.
+- Modifications made during the 'Modify' action regenerate the payload hash and update the pending record before execution can proceed.
+- The Activity Ledger is append-only; update and delete privileges are revoked from the application role.

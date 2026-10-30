@@ -1,75 +1,134 @@
 # FLOW — Core User Flows
 
-* **Document:** Core User Flows  
-* **Project:** FLOW  
-* **Version:** 1.0  
-* **Status:** Draft  
-* **Last Updated:** October 2026  
+**Version:** 1.0  
+**Document Type:** Product User Experience & Workflow Specification  
+**Status:** Approved  
+**Product Category:** Agentic AI Personal Productivity Operating System  
 
 ---
 
-## 1. Purpose
+## 1. Overview
 
-This document describes the major user journeys and system workflows in FLOW.
-
-It explains how users interact with the platform, how the AI assistant processes instructions, how actions are planned and approved, and how the system handles execution, verification, and failures.
-
-The objective is to ensure that every workflow is understandable, predictable, and controlled by the user.
-
----
-
-## 2. Core Workflow Principles
-
-FLOW should follow these principles across all user journeys:
-1. **Understand before acting:** Interpret the user's instruction and identify the intended outcome.
-2. **Clarify ambiguity:** Ask questions when required information is missing or unclear.
-3. **Plan before execution:** Convert requests into structured and understandable action plans.
-4. **Obtain approval:** Require explicit approval before consequential actions.
-5. **Execute safely:** Perform only the approved actions.
-6. **Verify results:** Confirm whether each action was successfully completed.
-7. **Prevent duplicates:** Ensure retries do not repeat already completed actions.
-8. **Report transparently:** Communicate successes, failures, and partial completion.
+This document specifies the primary user journeys and operational flows in FLOW. Every flow adheres to FLOW's core principles:
+- Understand before acting
+- Human approval required (Approve, Reject, Modify)
+- State verification before marking actions complete
+- Transparent activity logging
+- Retry-safe execution
 
 ---
 
-## 3. Main User Journey
+## 2. Primary End-to-End User Journey
 
-The primary FLOW journey consists of the following stages:
-1. User connects supported productivity accounts.
-2. User submits a natural-language instruction.
-3. FLOW interprets the request.
-4. FLOW identifies required information and checks relevant resources.
-5. FLOW generates an execution plan.
-6. User reviews the proposed plan.
-7. User approves or rejects consequential actions.
-8. FLOW executes approved actions.
-9. FLOW verifies execution results.
-10. FLOW displays the final outcome and records activity.
+### High-Level User Journey Diagram
 
-### 3.1 High-Level Workflow
-
-```text
+```mermaid
 flowchart TD
-    A([User opens FLOW]) --> B[Connect productivity accounts]
-    B --> C[Submit natural-language request]
-    C --> D[Interpret user intent]
-    D --> E{Information sufficient?}
-    E -->|No| F[Ask user for clarification]
-    F --> C
-    E -->|Yes| G[Retrieve relevant information]
-    G --> H[Generate execution plan]
-    H --> I[Display proposed actions]
-    I --> J{Approval required?}
-    J -->|Yes| K[Request explicit approval]
-    J -->|No| L[Execute permitted action]
-    K --> M{User decision}
-    M -->|Reject| N[Stop proposed action]
-    M -->|Approve| L
-    L --> O[Execute action]
-    O --> P[Verify result]
-    P --> Q{Successful?}
-    Q -->|Yes| R[Update activity history]
-    Q -->|No| S[Handle failure safely]
-    S --> T[Report failure or recovery options]
-    R --> U[Show final result]
-    T --> U
+    A([User Submits Prompt in Next.js UI]) --> B[NestJS Ingestion & Intent Parsing]
+    B --> C[Memory Lookup: Contacts, Relationships, Preferences]
+    C --> D[Planner Formulates Execution Steps & Drafts]
+    D --> E{Consequential Action?}
+    
+    E -->|No| F[Direct Read Execution]
+    E -->|Yes| G[Approval Center Interception]
+    
+    G --> H{User Action}
+    H -->|Approve| I[Execute via Microsoft Graph / Gmail]
+    H -->|Modify| J[Inline Field Adjustment] --> I
+    H -->|Reject| K[Abort Plan & Log Decision]
+    
+    I --> L[Verification Engine Probes Provider State]
+    L --> M{State Verified?}
+    
+    M -->|Yes| N[Record Immutable Entry in Activity Ledger]
+    M -->|No| O[Raise Verification Alert & Mark Failed]
+    
+    N --> P([Real-Time UI Update & Confirmation])
+    O --> P
+    K --> P
+    F --> P
+```
+
+---
+
+## 3. Email-to-Task Conversion Flow
+
+Users can convert action items mentioned in emails into structured tasks with auto-detected deadlines and priority scores.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant UI as Email Center (Next.js)
+    participant Backend as Email Module (NestJS)
+    participant Agent as Agent & Memory Engine
+    participant TaskMod as Tasks Module
+    participant DB as Supabase PostgreSQL
+
+    User->>UI: Select Email & Click "Convert to Task"
+    UI->>Backend: POST /api/email/convert-to-task { threadId }
+    Backend->>Agent: Extract Actionable Items, Due Dates, and Assignees
+    Agent-->>Backend: Extracted Task: { title: "Submit Financial Report", due_date: "Friday 5 PM", priority: "high" }
+    Backend->>TaskMod: Create Task with source_email_id reference
+    TaskMod->>DB: INSERT into tasks
+    TaskMod-->>UI: Return New Task
+    UI-->>User: Display Task in Today's Priority Board
+```
+
+---
+
+## 4. Smart Meeting Rescheduling & Conflict Resolution Flow
+
+When a meeting conflict arises, FLOW detects it, computes an alternative slot honoring working hours and buffer preferences, and requests user approval.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant UI as Dashboard & Calendar
+    participant Agent as Agent Orchestration Layer
+    participant Memory as Personal Memory (Preferences)
+    participant Cal as Calendar Module (Microsoft Graph / Google)
+    participant Appr as Approval Center
+
+    UI->>Agent: "Reschedule my review with Aditya to avoid clash"
+    Agent->>Memory: Retrieve Preferences (No meetings before 10 AM, 15m buffer)
+    Agent->>Cal: Query Free / Busy schedules for all attendees
+    Cal-->>Agent: Identified conflict-free slot: Tuesday 10:30 AM - 11:30 AM
+    Agent->>Appr: Create Reschedule Approval Request (Original vs Proposed)
+    Appr-->>UI: Display Reschedule Approval Card
+    
+    alt User Approves
+        User->>UI: Click "Approve"
+        UI->>Cal: Execute Reschedule on Microsoft Graph / Google Calendar
+        Cal-->>UI: Verified & Calendar Updated
+    else User Modifies
+        User->>UI: Click "Modify" (Adjust time to 11:00 AM)
+        UI->>Cal: Execute Reschedule with Modified Timestamp
+        Cal-->>UI: Verified & Calendar Updated
+    else User Rejects
+        User->>UI: Click "Reject"
+        UI-->>User: Conflict marked as acknowledged without changes
+    end
+```
+
+---
+
+## 5. Proactive Alerting & Health Analysis Flow
+
+FLOW continuously analyzes schedule density, overdue responses, and deadline risks in the background.
+
+```mermaid
+flowchart LR
+    CronWorker[Background Intelligence Worker] --> MonitorDeadlines[Scan Approaching Deadlines]
+    CronWorker --> MonitorReplies[Scan Unanswered Critical Emails]
+    CronWorker --> MonitorHealth[Evaluate Daily Meeting Load]
+    
+    MonitorDeadlines --> EvaluateAlert{Threshold Breached?}
+    MonitorReplies --> EvaluateAlert
+    MonitorHealth --> EvaluateAlert
+    
+    EvaluateAlert -->|Yes| PushAlert[Insert proactive_alerts & Send WebSocket Event]
+    PushAlert --> DashboardBar[Display in Proactive Alert Bar]
+    DashboardBar --> OneClickAction[User Triggers Suggested Action / Approval]
+```

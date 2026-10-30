@@ -1,966 +1,166 @@
-# FLOW - Agent Orchestration Design
+# FLOW — Agent Orchestration Design
 
-Version: 1.0
-Document Type: Agent Architecture
-Status: Draft
-
----
-
-# 1. Overview
-
-The Agent Orchestration Layer is the brain of FLOW.
-
-Its responsibility is to transform natural language user requests into structured, executable workflows while maintaining:
-
-- Context Awareness
-- Long-Term Memory
-- Human Approval
-- Execution Verification
-- Activity Tracking
-- Reliability
-
-The Agent never directly performs actions.
-
-Instead, it:
-
-1. Understands user intent
-2. Creates execution plans
-3. Requests approvals when required
-4. Delegates actions to workflow engines
-5. Verifies outcomes
-6. Logs results
+**Version:** 1.0  
+**Document Type:** Agent Architecture Specification  
+**Status:** Approved Architecture  
+**Product Category:** Agentic AI Personal Productivity Operating System  
 
 ---
 
-# 2. Core Philosophy
+## 1. Overview
 
-FLOW is not a chatbot.
+The Agent Orchestration Layer serves as the intelligence and planning core of FLOW. It bridges natural-language user intentions with structured, deterministic execution workflows while maintaining:
+- **Persistent Personal Memory** across contacts, relationships, preferences, events, and behavioral patterns.
+- **Human-in-the-Loop Governance** where consequential actions require approval (Approve, Reject, Modify).
+- **Post-Execution State Verification** confirming that external services (Microsoft Graph, Gmail, Google Calendar) successfully applied changes.
+- **Audit Logging** tracking every prompt, reasoning step, approval decision, and outcome in the Activity Ledger.
 
-FLOW is an Agentic Productivity Operating System.
+The agent never executes consequential operations unilaterally. It creates structured plans, coordinates memory lookups, dispatches approval requests, verifies execution receipts, and updates the user.
 
-Traditional Chatbot:
+---
 
-```text
-User Request
-↓
-AI Response
-```
+## 2. Core Agent Pipeline
 
-FLOW:
+The agent pipeline processes instructions through seven discrete stages.
 
-```text
-User Request
-↓
-Intent Analysis
-↓
-Planning
-↓
-Memory Retrieval
-↓
-Approval Check
-↓
-Execution
-↓
-Verification
-↓
-Logging
-↓
-Feedback
+### Agent Pipeline Diagram
+
+```mermaid
+flowchart TD
+    UserPrompt([User Natural Language Prompt]) --> Ingestion[1. Ingestion & Input Sanitization]
+    Ingestion --> IntentClassification[2. Intent Classification & Entity Extraction]
+    IntentClassification --> MemoryAugmentation[3. Personal Memory Retrieval & Context Augmentation]
+    MemoryAugmentation --> PlanningEngine[4. Multi-Step Workflow Planning]
+    PlanningEngine --> RiskAssessment{5. Requires Human Approval?}
+    
+    RiskAssessment -->|Yes| ApprovalCenter[Submit to Approval Center: Approve / Reject / Modify]
+    RiskAssessment -->|No| SafeExecution[Direct Non-Consequential Execution]
+    
+    ApprovalCenter --> DecisionGate{User Decision}
+    DecisionGate -->|Approved / Modified| ExecutionEngine[6. Multi-Step Execution Engine]
+    DecisionGate -->|Rejected| AbortWorkflow[Abort Plan & Log Cancellation]
+    
+    SafeExecution --> ExecutionEngine
+    ExecutionEngine --> VerificationEngine[7. Verification Engine & Activity Ledger]
+    VerificationEngine --> UserFeedback([UI Feedback & State Sync])
 ```
 
 ---
 
-# 3. Agent Architecture
+## 3. Planning Workflow
 
-```text
-User
- ↓
-Conversation Agent
- ↓
-Intent Engine
- ↓
-Planning Engine
- ↓
-Memory Engine
- ↓
-Decision Engine
- ↓
-Approval Engine
- ↓
-Workflow Engine
- ↓
-Verification Engine
- ↓
-Activity Logger
+The Planning Engine transforms unstructured prompts into a directed sequence of actionable steps.
+
+### Planning Workflow Diagram
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant Orchestrator as Agent Orchestrator
+    participant Intent as Intent Classifier
+    participant Memory as Memory Module (PostgreSQL + pgvector)
+    participant Planner as Workflow Planner (LiteLLM / Qwen 2.5)
+    participant Approvals as Approval Center
+
+    User->>Orchestrator: "Move my Friday 3 PM review to Monday morning and inform Aditya"
+    Orchestrator->>Intent: Extract Intent & Entities
+    Intent-->>Orchestrator: Intent: RESCHEDULE_MEETING & SEND_NOTIFICATION, Entities: [Friday 3 PM, Monday morning, Aditya]
+    
+    Orchestrator->>Memory: Query Contacts & Preferences
+    Memory-->>Orchestrator: Aditya = aditya@example.com, Working Hours: Mon-Fri 09:00-18:00, No meetings before 10 AM
+    
+    Orchestrator->>Planner: Generate Execution Plan with Context & Constraints
+    Planner-->>Orchestrator: Plan: [1. Locate Event, 2. Check Mon Availability (>= 10 AM), 3. Propose Slot: Mon 10:30 AM, 4. Update Calendar, 5. Send Notification]
+    
+    Orchestrator->>Approvals: Create Pending Approval with complete Plan & Diff
+    Approvals-->>User: Present Plan for Review (Approve / Reject / Modify)
 ```
 
 ---
 
-# 4. Agent Components
+## 4. Personal Memory System & Retrieval Flow
 
-## 4.1 Conversation Agent
+FLOW maintains five distinct types of persistent personal memory:
+1. **Contact Memory:** Name, email, primary role, department, notes.
+2. **Relationship Memory:** Interpersonal and professional associations (e.g., "Aditya = Co-Lead", "Rahul = Client").
+3. **Preference Memory:** Work patterns, scheduling rules, preferred communication tone, meeting buffers.
+4. **Event Memory:** Milestones, birthdays, anniversaries, project deadlines, exam dates.
+5. **Behavioral Memory:** Learned habits, common meeting durations, recurring study times.
 
-### Purpose
+### Memory Retrieval Flow Diagram
 
-Acts as the communication layer between the user and FLOW.
-
-Responsible for:
-
-- Natural language understanding
-- Conversational interaction
-- Clarification requests
-- Follow-up questions
-
----
-
-### Examples
-
-User:
-
-```text
-Schedule a meeting with my co-lead.
-```
-
-Conversation Agent:
-
-```text
-Understood.
-
-Retrieving your co-lead information.
-```
-
----
-
-User:
-
-```text
-Help me prepare for my React exam.
-```
-
-Conversation Agent:
-
-```text
-Generating study plan.
+```mermaid
+flowchart TD
+    UserQuery[User Input / Plan Request] --> QueryParser[Extract Query Terms & Semantic Intent]
+    QueryParser --> SplitSearch{Search Strategy}
+    
+    SplitSearch -->|Exact Match| RelationalQuery[SQL Relational Query in PostgreSQL]
+    SplitSearch -->|Semantic / Fuzzy| VectorQuery[Vector Embedding Generation via LiteLLM]
+    
+    VectorQuery --> SimilaritySearch[Cosine Similarity Search in pgvector]
+    
+    RelationalQuery --> ContactStore[(contacts & relationships)]
+    RelationalQuery --> PrefStore[(user_preferences & personal_events)]
+    SimilaritySearch --> BehavioralStore[(behavioral_memory & interaction_embeddings)]
+    
+    ContactStore --> Aggregator[Context Aggregator & Conflict Resolver]
+    PrefStore --> Aggregator
+    BehavioralStore --> Aggregator
+    
+    Aggregator --> RankedContext[Ranked Context Injected into Prompt Context]
+    RankedContext --> AgentLLM[LiteLLM / Ollama Qwen 2.5]
 ```
 
 ---
 
-# 4.2 Intent Detection Engine
+## 5. Multi-Step Execution Flow
 
-### Purpose
+Execution involves step-by-step progress, parameter binding, external API invocation, and error isolation.
 
-Convert human language into structured actions.
+### Multi-Step Execution Flow Diagram
 
-Example:
-
-User:
-
-```text
-Email Aditya the latest project update.
-```
-
-Output:
-
-```json
-{
-  "intent": "SEND_EMAIL",
-  "target": "Aditya",
-  "requiresApproval": true
-}
-```
-
----
-
-### Supported Intents
-
-#### Email
-
-```text
-SEND_EMAIL
-
-DRAFT_EMAIL
-
-FOLLOW_UP_EMAIL
-
-SUMMARIZE_EMAIL
-```
-
----
-
-#### Calendar
-
-```text
-CREATE_EVENT
-
-UPDATE_EVENT
-
-DELETE_EVENT
-
-RESCHEDULE_EVENT
-
-CHECK_CONFLICTS
+```mermaid
+stateDiagram-v2
+    [*] --> PLAN_INITIALIZED
+    PLAN_INITIALIZED --> STEP_EVALUATION
+    
+    STEP_EVALUATION --> STEP_APPROVAL_REQUIRED: Consequential Action
+    STEP_EVALUATION --> STEP_EXECUTING: Read-only or Pre-Approved Action
+    
+    STEP_APPROVAL_REQUIRED --> STEP_APPROVED: User Clicks Approve
+    STEP_APPROVAL_REQUIRED --> STEP_MODIFIED: User Modifies Details
+    STEP_APPROVAL_REQUIRED --> PLAN_CANCELLED: User Clicks Reject
+    
+    STEP_MODIFIED --> STEP_EXECUTING
+    STEP_APPROVED --> STEP_EXECUTING
+    
+    STEP_EXECUTING --> STEP_VERIFYING: Provider Call Completed
+    STEP_EXECUTING --> STEP_RETRYING: Transient Network Error
+    
+    STEP_RETRYING --> STEP_EXECUTING: Retry Token Checked
+    STEP_RETRYING --> STEP_FAILED: Max Retries Exceeded
+    
+    STEP_VERIFYING --> STEP_COMPLETED: State Proof Confirmed
+    STEP_VERIFYING --> STEP_FAILED: State Verification Failed
+    
+    STEP_COMPLETED --> STEP_EVALUATION: More Steps in Plan
+    STEP_COMPLETED --> PLAN_FINISHED: All Steps Verified
+    
+    STEP_FAILED --> PLAN_PAUSED_FOR_USER: Alert Raised
+    PLAN_PAUSED_FOR_USER --> [*]
+    PLAN_FINISHED --> [*]
+    PLAN_CANCELLED --> [*]
 ```
 
 ---
 
-#### Tasks
-
-```text
-CREATE_TASK
-
-UPDATE_TASK
-
-DELETE_TASK
-
-COMPLETE_TASK
-
-PLAN_PROJECT
-```
-
----
-
-#### Memory
-
-```text
-SAVE_MEMORY
-
-RECALL_MEMORY
-
-UPDATE_MEMORY
-```
-
----
-
-# 4.3 Context Engine
-
-### Purpose
-
-Provide situational awareness.
-
-The context engine gathers information from:
-
-- Tasks
-- Calendar
-- Emails
-- Preferences
-- Memory
-- Relations
-- Previous Actions
-
-before planning.
-
----
-
-### Example
-
-User:
-
-```text
-Move tomorrow's meeting.
-```
-
-Context Engine checks:
-
-```text
-Which meeting?
-
-Calendar availability?
-
-Related attendees?
-
-Preference constraints?
-```
-
-before creating a plan.
-
----
-
-# 4.4 Personal Memory Engine
-
-### Purpose
-
-Store user-specific information.
-
-This is one of FLOW's major differentiators.
-
----
-
-## Contact Memory
-
-Stores:
-
-```text
-Names
-
-Emails
-
-Phone Numbers
-
-Organizations
-```
-
----
-
-## Relationship Memory
-
-Stores:
-
-```text
-Co Lead
-
-Manager
-
-Client
-
-Friend
-
-Family
-```
-
-Example:
-
-```text
-Aditya → Co Lead
-
-Rahul → Client
-```
-
----
-
-## Preference Memory
-
-Stores:
-
-```text
-Working Hours
-
-Communication Style
-
-Meeting Preferences
-
-Notification Preferences
-```
-
-Example:
-
-```text
-No meetings before 10AM.
-```
-
----
-
-## Event Memory
-
-Stores:
-
-```text
-Birthdays
-
-Anniversaries
-
-Exams
-
-Interviews
-
-Personal Events
-```
-
----
-
-## Behavioral Memory
-
-Learns:
-
-```text
-Frequently Contacted People
-
-Common Actions
-
-Task Patterns
-
-Scheduling Habits
-```
-
----
-
-# 4.5 Planning Engine
-
-### Purpose
-
-Convert user goals into executable workflows.
-
----
-
-### Example
-
-Request:
-
-```text
-Schedule a review meeting with Aditya.
-```
-
-Generated Plan:
-
-```text
-1. Find Aditya
-
-2. Check Calendar
-
-3. Identify Slots
-
-4. Generate Invitation
-
-5. Request Approval
-
-6. Create Event
-
-7. Verify Event
-
-8. Log Action
-```
-
----
-
-### Plan Structure
-
-```json
-{
-  "goal":"Schedule Meeting",
-  "steps":[
-    "find_contact",
-    "check_calendar",
-    "request_approval",
-    "create_event",
-    "verify_event"
-  ]
-}
-```
-
----
-
-# 4.6 Decision Engine
-
-### Purpose
-
-Evaluate possible actions.
-
----
-
-The Decision Engine considers:
-
-```text
-User Preferences
-
-Existing Tasks
-
-Upcoming Deadlines
-
-Calendar Health
-
-Historical Behavior
-```
-
-before selecting actions.
-
----
-
-### Example
-
-Two possible meeting times:
-
-```text
-9 AM
-
-11 AM
-```
-
-User Preference:
-
-```text
-No meetings before 10 AM
-```
-
-Decision:
-
-```text
-Select 11 AM
-```
-
----
-
-# 4.7 Tool Selection Engine
-
-### Purpose
-
-Determine which tools are required.
-
----
-
-### Email Request
-
-Tools:
-
-```text
-Memory Tool
-
-Email Tool
-
-Approval Tool
-
-Verification Tool
-```
-
----
-
-### Meeting Request
-
-Tools:
-
-```text
-Memory Tool
-
-Calendar Tool
-
-Approval Tool
-
-Verification Tool
-```
-
----
-
-### Task Request
-
-Tools:
-
-```text
-Task Tool
-
-Planner Tool
-
-Schedule Tool
-```
-
----
-
-# 5. Agent Workflows
-
-## Email Workflow
-
-```text
-User Request
-
-↓
-
-Intent Detection
-
-↓
-
-Retrieve Contact
-
-↓
-
-Generate Draft
-
-↓
-
-Approval Request
-
-↓
-
-Send Email
-
-↓
-
-Verify Delivery
-
-↓
-
-Log Activity
-```
-
----
-
-## Meeting Workflow
-
-```text
-User Request
-
-↓
-
-Find Attendees
-
-↓
-
-Check Calendar
-
-↓
-
-Generate Slots
-
-↓
-
-Approval
-
-↓
-
-Create Event
-
-↓
-
-Verify Event
-
-↓
-
-Log Activity
-```
-
----
-
-## Task Workflow
-
-```text
-User Request
-
-↓
-
-Generate Task
-
-↓
-
-Break Into Subtasks
-
-↓
-
-Assign Priority
-
-↓
-
-Schedule
-
-↓
-
-Save Task
-
-↓
-
-Log Activity
-```
-
----
-
-# 6. Multi-Step Workflow Examples
-
-## Example 1
-
-User:
-
-```text
-Prepare me for tomorrow's client meeting.
-```
-
-Plan:
-
-```text
-Retrieve Meeting
-
-Retrieve Related Emails
-
-Retrieve Related Tasks
-
-Generate Meeting Summary
-
-Generate Agenda
-
-Create Preparation Checklist
-```
-
----
-
-## Example 2
-
-User:
-
-```text
-Plan my React learning journey.
-```
-
-Plan:
-
-```text
-Create Study Goal
-
-Generate Curriculum
-
-Create Weekly Tasks
-
-Schedule Study Sessions
-
-Generate Reminders
-```
-
----
-
-# 7. Proactive Intelligence Engine
-
-### Purpose
-
-Act without explicit prompting when risks are detected.
-
----
-
-## Deadline Risk Detection
-
-Example:
-
-```text
-Task Due Tomorrow
-
-Progress Low
-```
-
-Action:
-
-```text
-Generate Warning
-
-Suggest Focus Block
-```
-
----
-
-## Conflict Detection
-
-Example:
-
-```text
-Meeting Overlap
-```
-
-Action:
-
-```text
-Generate Alert
-
-Suggest New Times
-```
-
----
-
-## Missing Reply Detection
-
-Example:
-
-```text
-No Client Reply For 5 Days
-```
-
-Action:
-
-```text
-Suggest Follow-Up Email
-```
-
----
-
-## Schedule Health Analysis
-
-Detects:
-
-```text
-Meeting Overload
-
-No Breaks
-
-No Focus Time
-```
-
-Recommendations generated automatically.
-
----
-
-# 8. Human Approval Integration
-
-The Agent never bypasses approval requirements.
-
-Required Approval Actions:
-
-```text
-Send Email
-
-Delete Task
-
-Create Meeting
-
-Reschedule Meeting
-
-Bulk Changes
-
-External Communications
-```
-
----
-
-# 9. Verification Integration
-
-Every external action must be verified.
-
----
-
-## Email Verification
-
-Checks:
-
-```text
-Message Sent
-
-Provider Accepted
-```
-
----
-
-## Calendar Verification
-
-Checks:
-
-```text
-Event Created
-
-Attendees Added
-```
-
----
-
-## Task Verification
-
-Checks:
-
-```text
-Task Saved Successfully
-```
-
----
-
-# 10. Failure Handling
-
-If execution fails:
-
-```text
-Detect Failure
-
-Collect Error
-
-Check Existing State
-
-Retry Safely
-
-Log Result
-```
-
----
-
-### Duplicate Action Prevention
-
-Example:
-
-```text
-Email Sent
-
-Network Timeout
-
-Retry Triggered
-```
-
-Agent:
-
-```text
-Verify Existing Email
-
-If Found:
-Do Not Resend
-```
-
----
-
-# 11. Agent Memory + Workflow Example
-
-User:
-
-```text
-Aditya is my co-lead.
-
-His email is aditya@gmail.com.
-```
-
-FLOW stores:
-
-```text
-Contact:
-Aditya
-
-Role:
-Co Lead
-
-Email:
-aditya@gmail.com
-```
-
-Later:
-
-User:
-
-```text
-Send my co-lead the sprint update.
-```
-
-Agent:
-
-```text
-Retrieve Relationship
-
-Resolve Contact
-
-Generate Email
-
-Request Approval
-
-Send Email
-
-Verify
-
-Log
-```
-
-without asking again.
-
----
-
-# 12. Future Multi-Agent Expansion
-
-Current MVP:
-
-```text
-Single Orchestrator Agent
-```
-
-Future Architecture:
-
-```text
-Orchestrator Agent
-
-├── Email Agent
-├── Calendar Agent
-├── Task Agent
-├── Memory Agent
-├── Planning Agent
-└── Analytics Agent
-```
-
-This allows independent specialization and scaling.
-
----
-
-# Agent Design Summary
-
-FLOW's Agent Orchestration Layer is responsible for understanding users, remembering context, planning actions, coordinating tools, enforcing approvals, verifying outcomes, and maintaining complete activity transparency.
-
-The Agent's primary objective is not simply automation, but trustworthy assistance through memory, planning, verification, and human-centered control.
+## 6. Proactive Intelligence Integration
+
+The agent does not simply wait for user commands. A background Proactive Intelligence Layer evaluates productivity health and triggers agent plans:
+- **Deadline Risk Detection:** Scans task deadlines against current time and scheduled calendar blocks.
+- **Missing Reply Detection:** Tracks sent emails to key contacts that have had no reply after a designated duration.
+- **Schedule Health Analysis:** Flags meeting overload, missing lunch buffers, or lack of focus blocks.
+- **Conflict Alerting:** Identifies concurrent meetings or overlapping task blocks and prepares rescheduling proposals.
+
+When a proactive condition is identified, the agent creates a proactive recommendation in the Dashboard and queues an approval action for the user to review.

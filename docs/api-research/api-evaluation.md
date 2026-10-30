@@ -403,13 +403,15 @@ Model Routing Layer
 ## Architecture
 
 ```text
-FLOW Backend
+FLOW Backend (Render)
+ ↓
+Cloudflare Tunnel (Secure HTTPS Ingress)
  ↓
 LiteLLM
  ↓
 Ollama
  ↓
-Qwen
+Qwen 2.5
 ```
 
 ---
@@ -724,6 +726,7 @@ Future Scope
 | Gmail API | Email Support | P0 |
 | Google Calendar API | Calendar Sync | P1 |
 | LiteLLM | LLM Gateway | P0 |
+| Cloudflare Tunnel | Secure AI Ingress | P0 |
 | Ollama | Local AI Execution | P0 |
 | Supabase | Database + Auth | P0 |
 | PostgreSQL | Data Storage | P0 |

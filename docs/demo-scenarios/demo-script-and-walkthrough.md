@@ -480,7 +480,7 @@ Coordinating multi-step operations across independent services while maintaining
 
 ### Q9. Can FLOW work with multiple productivity providers?
 
-That is a possible future direction. The initial implementation should prioritize one provider ecosystem before expanding integrations.
+Yes. FLOW natively integrates with both Microsoft 365 (via Microsoft Graph API for Mail, Calendar, and To Do) and Google Workspace (via Gmail API and Google Calendar API), synchronizing them into FLOW's independent unified calendar and task models.
 
 ### Q10. What is the future direction?
 

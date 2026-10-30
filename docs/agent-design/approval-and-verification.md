@@ -1,591 +1,156 @@
-# FLOW - Approval & Verification System
+# FLOW — Approval & Verification System
 
-Version: 1.0
-Document Type: Agent Design
-Module: Approval and Verification
-Status: Draft
-
----
-
-# 1. Overview
-
-The Approval and Verification System is the trust layer of FLOW.
-
-It ensures that:
-
-- Users remain in control of important actions.
-- AI actions are transparent.
-- External operations are verified.
-- Failed executions are detectable.
-- Duplicate actions are prevented.
-- Every significant action is auditable.
-
-This layer differentiates FLOW from traditional assistants by prioritizing reliability over blind automation.
+**Version:** 1.0  
+**Document Type:** Agent Design Specification  
+**Status:** Approved Architecture  
+**Module:** Approval Center & Verification Engine  
 
 ---
 
-# 2. Purpose
+## 1. Overview
 
-Most AI assistants focus on:
-
-```text
-User Request
-↓
-Execute Action
-↓
-Done
-```
-
-FLOW follows:
-
-```text
-User Request
-↓
-Plan Action
-↓
-Request Approval
-↓
-Execute Action
-↓
-Verify Outcome
-↓
-Create Proof
-↓
-Log Activity
-↓
-Report Result
-```
-
-This approach ensures trust, accountability, and safety.
+The Approval Center and Verification Engine represent the core safety and trust guarantees of FLOW. Together, they ensure that:
+1. No consequential or irreversible action occurs without explicit human consent.
+2. Users can adjust proposed actions using inline editing before executing them.
+3. Every operation executed against external APIs (Microsoft Graph, Gmail, Google Calendar) is actively verified before being marked complete.
+4. Retry attempts never duplicate operations.
+5. All approvals, execution attempts, and verification receipts are immutably logged in the Activity Ledger.
 
 ---
 
-# 3. Core Principles
+## 2. Approval Center Architecture & Flow
 
-## Human Control
+The Approval Center intercepts all agent-planned actions marked as consequential:
+- **Email Actions:** Sending an email, sending a reply, modifying drafts.
+- **Calendar Actions:** Creating new events, rescheduling existing meetings, deleting appointments, adding attendees.
+- **Task Actions:** Deleting tasks, shifting project milestones, altering priorities.
 
-Users always retain final authority over important actions.
+### Approval Flow Diagram
 
-The system never assumes permission for sensitive operations.
-
----
-
-## Transparency
-
-Before execution, FLOW clearly explains:
-
-- What will happen
-- Why it should happen
-- Which systems will be affected
-- What outcome is expected
-
----
-
-## Verification First
-
-Execution is not considered successful until verification confirms it.
-
----
-
-## Auditability
-
-Every action produces:
-
-- Logs
-- Verification records
-- Status updates
-- Historical evidence
-
----
-
-## Retry Safety
-
-Retries must never create duplicate actions.
-
----
-
-# 4. Approval Architecture
-
-```text
-User Request
-↓
-Agent Planning
-↓
-Approval Requirement Check
-↓
-Approval Request Creation
-↓
-User Decision
-↓
-Execution
-↓
-Verification
-↓
-Activity Logging
+```mermaid
+flowchart TD
+    AgentPlan[Agent Generated Plan] --> ActionClassifier{Classify Action Risk}
+    ActionClassifier -->|Non-Consequential: Read / Search| AutoExecute[Direct Backend Execution]
+    ActionClassifier -->|Consequential: Send / Delete / Mutate| CreateApproval[Create Pending Approval Record in Supabase]
+    
+    CreateApproval --> NotifyUI[Push Real-Time Notification to Next.js UI]
+    NotifyUI --> DisplayModal[Display Approval Card in Dashboard]
+    
+    DisplayModal --> UserAction{User Decision}
+    
+    UserAction -->|Approve| ApprovePath[Set Status: APPROVED]
+    UserAction -->|Reject| RejectPath[Set Status: REJECTED]
+    UserAction -->|Modify| ModifyPath[Open Inline Editor Modal]
+    
+    ModifyPath --> EditDetails[User Adjusts Subject, Body, Attendees, or Time]
+    EditDetails --> SaveDiff[Update Approval Payload & Set Status: MODIFIED_AND_APPROVED]
+    
+    ApprovePath --> DispatchExecution[Trigger Backend Execution Engine]
+    SaveDiff --> DispatchExecution
+    
+    RejectPath --> LogRejection[Log Decision in Activity Ledger & Terminate Plan]
+    LogRejection --> UserNotice([Feedback: Action Cancelled])
 ```
 
 ---
 
-# 5. Approval Engine
+## 3. Verification Engine & State Confirmation Flow
 
-## Overview
+The Verification Engine validates that an external system's actual state matches the expected outcome of an action.
 
-The Approval Engine determines whether a user action requires explicit authorization before execution.
+### Verification Targets & Checks
+1. **Email Verification:**
+   - Provider HTTP acknowledgment received (e.g., Microsoft Graph `202 Accepted` or Gmail API `200 OK`).
+   - Querying the user's `Sent Items` folder to confirm the message exists with the allocated `message_id`.
+   - Matching recipient address and timestamp within acceptable drift window.
+2. **Calendar Verification:**
+   - Confirming event creation or update by querying the calendar event by `event_id` or `iCalUId`.
+   - Verifying that start time, end time, and attendee list reflect the approved values.
+   - Confirming that no duplicate event was created.
+3. **Task Verification:**
+   - Confirming task record insertion or mutation in Supabase and external sync targets (Microsoft To Do).
+   - Verifying subtask associations and parent project linking.
 
----
+### Verification Flow Diagram
 
-## Responsibilities
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Execution as Execution Engine
+    participant Provider as External Service (Graph / Gmail)
+    participant Verifier as Verification Engine
+    participant DB as Supabase PostgreSQL
+    participant Ledger as Activity Ledger
 
-- Evaluate risk levels
-- Generate approval requests
-- Handle user decisions
-- Maintain approval state
-- Enforce approval policies
+    Execution->>Provider: Invoke API Call (e.g., POST /me/sendMail or /events)
+    Provider-->>Execution: Return HTTP Status (200 / 202) + External ID
+    Execution->>Verifier: Dispatch Verification Request (Action, Payload, External ID)
+    
+    Verifier->>Verifier: Wait for Provider State Propagation (backoff: 500ms)
+    
+    rect rgb(240, 248, 255)
+        note over Verifier, Provider: Verification Query Loop
+        Verifier->>Provider: GET /resource/:id (Query Sent Message or Calendar Event)
+        Provider-->>Verifier: Return State Representation
+        Verifier->>Verifier: Compare Expected State vs Actual State
+    end
 
----
-
-# 6. Approval Categories
-
-## Low Risk Actions
-
-May execute automatically.
-
-Examples:
-
-```text
-Reading Tasks
-
-Viewing Calendar
-
-Searching Emails
-
-Summarizing Emails
-
-Generating Study Plans
+    alt State Matches Expected Payload
+        Verifier->>DB: Update Action Status: VERIFIED
+        Verifier->>Ledger: Append Verification Receipt (Proof Hash, Timestamp, Entity ID)
+        Verifier-->>Execution: Verification Confirmed
+    else State Does Not Match or Resource Missing
+        Verifier->>DB: Update Action Status: VERIFICATION_FAILED
+        Verifier->>Ledger: Append Verification Failure Notice & Details
+        Verifier-->>Execution: Raise Verification Alert to User
+    end
 ```
 
 ---
 
-## Medium Risk Actions
+## 4. Retry Protection & Idempotency Flow
 
-User approval recommended.
+To prevent duplicate emails, double-booked meetings, or multiple task copies during network dropouts or backend retries, FLOW implements strict idempotency safeguards.
 
-Examples:
+### Retry Protection Rules:
+1. **Idempotency Token:** Every approved action receives a unique cryptographic `idempotency_key` (UUID v4 + SHA-256 hash of the approved payload).
+2. **Pre-Execution Check:** Before calling an external API, FLOW checks if the `idempotency_key` is already associated with an `EXECUTED` or `VERIFIED` record in the database.
+3. **State Probing Prior to Retry:** If a network timeout occurs, FLOW does not immediately retry. Instead, it queries the provider using the expected attributes (e.g., search Sent Items by subject and timestamp) to verify whether the previous attempt actually succeeded before retrying.
 
-```text
-Creating Tasks
+### Retry Protection Flow Diagram
 
-Scheduling Focus Sessions
-
-Adding Reminders
-
-Creating Draft Emails
+```mermaid
+flowchart TD
+    TriggerRetry([Execution Attempt / Retry Initiated]) --> CheckIdempotency{Idempotency Key in Database?}
+    
+    CheckIdempotency -->|Key in Status: VERIFIED| SkipRetry[Action Already Completed: Skip Execution & Return Cached Receipt]
+    CheckIdempotency -->|Key in Status: EXECUTING| ProbeProvider[State Probe: Query External API for Probable Duplicate]
+    CheckIdempotency -->|Key New / Not Started| PerformCall[Execute API Call with Client Request Token]
+    
+    ProbeProvider --> StateExists{Did Prior Attempt Actually Succeeded?}
+    StateExists -->|Yes, Resource Exists| AdoptResource[Adopt Existing Resource ID & Advance to VERIFIED]
+    StateExists -->|No, Not Found| PerformCall
+    
+    PerformCall --> CallResult{API Call Result}
+    CallResult -->|Success| VerifyCall[Trigger Verification Engine]
+    CallResult -->|Transient Network Error| CheckRetryLimit{Retry Limit Reached?}
+    CallResult -->|Permanent Auth / Client Error| AbortFail[Mark FAILED & Alert User]
+    
+    CheckRetryLimit -->|No| BackoffWait[Exponential Backoff Wait] --> TriggerRetry
+    CheckRetryLimit -->|Yes| AbortFail
+    
+    VerifyCall --> Complete([Action Completed Safely])
+    SkipRetry --> Complete
+    AdoptResource --> Complete
 ```
 
 ---
 
-## High Risk Actions
+## 5. Activity Ledger Integration
 
-Approval required.
+The Activity Ledger provides an append-only audit trail capturing three categories of logs:
+1. **Execution Logs:** Exact timestamps, actor, parameters, target service, and raw HTTP response codes.
+2. **Verification Logs:** Verification checks performed, retrieved state proof, diff analysis, and validation timestamps.
+3. **Approval Logs:** Reviewer ID, decision (Approve, Reject, Modify), modified field diffs, and decision timestamp.
 
-Examples:
-
-```text
-Sending Emails
-
-Creating Meetings
-
-Updating Meetings
-
-Deleting Events
-
-Deleting Tasks
-
-Sending Notifications to External Users
-```
-
----
-
-# 7. Approval Workflow
-
-## Step 1
-
-User Request
-
-Example:
-
-```text
-Send the sprint update to Aditya.
-```
-
----
-
-## Step 2
-
-Agent Planning
-
-Generated Plan:
-
-```text
-Identify Recipient
-
-Generate Draft
-
-Send Email
-```
-
----
-
-## Step 3
-
-Approval Check
-
-FLOW determines:
-
-```text
-External Communication Detected
-
-Approval Required
-```
-
----
-
-## Step 4
-
-Approval Request Generated
-
-Displayed to user:
-
-```text
-Action:
-Send Email
-
-Recipient:
-Aditya
-
-Subject:
-Sprint Update
-
-Reason:
-User Requested Project Update
-```
-
----
-
-## Step 5
-
-User Decision
-
-Available actions:
-
-```text
-Approve
-
-Modify
-
-Reject
-```
-
----
-
-## Step 6
-
-Execution
-
-If approved:
-
-```text
-Send Email
-```
-
----
-
-## Step 7
-
-Verification
-
-Verify successful completion.
-
----
-
-## Step 8
-
-Log Activity
-
-Store complete record.
-
----
-
-# 8. Approval States
-
-```text
-Draft
-
-Pending
-
-Approved
-
-Rejected
-
-Expired
-
-Executed
-
-Verified
-```
-
----
-
-## Draft
-
-Action generated.
-
-Not yet presented.
-
----
-
-## Pending
-
-Waiting for user response.
-
----
-
-## Approved
-
-Authorized for execution.
-
----
-
-## Rejected
-
-Execution canceled.
-
----
-
-## Expired
-
-Approval timed out.
-
----
-
-## Executed
-
-Action executed.
-
-Verification pending.
-
----
-
-## Verified
-
-Execution confirmed.
-
----
-
-# 9. Approval Data Model
-
-```json
-{
-  "approvalId": "APR-123",
-  "userId": "USR-001",
-  "actionType": "SEND_EMAIL",
-  "status": "Pending",
-  "createdAt": "2025-01-01"
-}
-```
-
----
-
-# 10. Approval Queue
-
-FLOW maintains a dedicated approval inbox.
-
----
-
-## Purpose
-
-Centralize pending actions.
-
----
-
-## Examples
-
-```text
-Send Client Email
-
-Reschedule Review Meeting
-
-Delete Project Task
-
-Cancel Event
-```
-
----
-
-## User Dashboard View
-
-```text
-Pending Approvals
-
-[Approve]
-
-[Modify]
-
-[Reject]
-```
-
----
-
-# 11. Verification System
-
-## Overview
-
-Verification confirms whether external actions actually succeeded.
-
-Execution does not equal success.
-
-Example:
-
-```text
-API Returned Success
-```
-
-does not necessarily mean:
-
-```text
-Email Delivered
-```
-
-Verification is required.
-
----
-
-# 12. Verification Engine
-
-## Responsibilities
-
-- Validate outcomes
-- Gather proof
-- Detect failures
-- Trigger retries
-- Create evidence records
-
----
-
-# 13. Verification Workflow
-
-```text
-Execution Completed
-↓
-Retrieve Current State
-↓
-Compare Expected State
-↓
-Verify Result
-↓
-Store Evidence
-↓
-Update Status
-```
-
----
-
-# 14. Email Verification
-
-## Goal
-
-Confirm email transmission.
-
----
-
-## Checks
-
-### Check 1
-
-Message Created
-
-```text
-Provider Returned Message ID
-```
-
----
-
-### Check 2
-
-Sent Folder Verification
-
-```text
-Email Exists
-```
-
----
-
-### Check 3
-
-Provider Confirmation
-
-```text
-Request Completed Successfully
-```
-
----
-
-## Success State
-
-```text
-Verified
-```
-
----
-
-## Failure State
-
-```text
-Verification Failed
-```
-
----
-
-# 15. Calendar Verification
-
-## Goal
-
-Confirm meeting creation or modification.
-
----
-
-## Checks
-
-### Event Exists
-
-Verify:
-
-```text
-Event ID Exists
-```
-
----
-
-### Time Updated
-
-Verify:
-
-```text
-Start Time
-
-End Time
-```
-
-match expected values.
-
----
-
-### Attendees Updated
-
-Verify:
-
-```text
-Participant List
-```
-
-contains
+This ensures complete operational transparency, post-incident debugging capability, and judge-verifiable auditability.

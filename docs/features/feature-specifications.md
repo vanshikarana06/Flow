@@ -265,11 +265,33 @@ Allows natural conversational references.
 
 ---
 
+## Behavioral Memory
+
+Stores:
+
+- Interaction patterns
+- Common meeting durations
+- Typical focus hours
+- Recurring work habits
+
+Vector embeddings generated via LiteLLM and stored in pgvector allow FLOW to adapt to user behaviors over time.
+
+---
+
 # 5. Smart Email Management
 
 ## Overview
 
-FLOW connects with Gmail and Outlook providers while maintaining a unified email experience.
+FLOW connects with Gmail and Outlook (Microsoft Graph) providers while maintaining a unified email experience.
+
+### Core Capabilities:
+- **Read Emails:** Unified inbox query across connected accounts.
+- **Draft Emails:** Context-aware draft generation from prompts.
+- **Send Emails:** Secure email delivery gated by human approval.
+- **Follow-Up Detection:** Automatic flagging of unanswered outbound threads.
+- **Email Summarization:** Thread summarization and sentiment identification.
+- **Email To Task Conversion:** Direct extraction of actionable tasks and deadlines.
+- **Approval Based Email Sending:** Mandatory Approve/Reject/Modify gate prior to sending.
 
 ---
 
@@ -378,9 +400,16 @@ Reject
 
 ## Overview
 
-FLOW includes its own calendar and scheduling system.
+FLOW includes its own calendar and scheduling system. Vendor calendars (Microsoft Graph and Google Calendar) are used for synchronization only.
 
-Vendor calendars are used for synchronization only.
+### Core Capabilities:
+- **Independent FLOW Calendar:** Native calendar data model and UI.
+- **External Sync:** Bi-directional sync with Microsoft Graph and Google Calendar.
+- **Conflict Detection:** Real-time identification of overlapping events and task blocks.
+- **Smart Scheduling:** Context-aware placement in free time slots.
+- **Rescheduling:** Intelligent conflict resolution and time slot adjustments.
+- **Event Reminders:** Timely notifications for upcoming events and personal dates.
+- **Focus Blocks:** Automatic allocation of uninterrupted deep work periods.
 
 ---
 
@@ -678,7 +707,14 @@ Task completed
 
 ## Overview
 
-Tracks all actions inside FLOW.
+Tracks all actions inside FLOW in an append-only audit trail.
+
+---
+
+## Core Log Categories:
+- **Execution Logs:** Exact timestamps, actor, parameters, target service, and HTTP responses.
+- **Verification Logs:** Verification checks performed, retrieved state proof, diff analysis, and validation timestamps.
+- **Approval Logs:** Reviewer ID, decision (Approve, Reject, Modify), modified field diffs, and timestamp.
 
 ---
 
@@ -715,7 +751,13 @@ ABC123
 
 ## Overview
 
-FLOW actively monitors productivity.
+FLOW actively monitors productivity in the background without waiting for user commands.
+
+### Core Capabilities:
+- **Deadline Detection:** Continuous monitoring of approaching task and project deadlines.
+- **Missing Reply Detection:** Proactive detection of silent outbound email conversations.
+- **Schedule Health Analysis:** Assessment of daily meeting density, breaks, and burnout risk.
+- **Conflict Alerting:** Immediate notification and resolution proposals for schedule collisions.
 
 ---
 

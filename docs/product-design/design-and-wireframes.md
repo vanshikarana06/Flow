@@ -170,3 +170,41 @@ The following wireframes describe the proposed layout and interaction structure.
 |                  |  - Review proposed calendar event          |
 |                  |                                           |
 +------------------+-------------------------------------------+
+
+### 6.2 Approval Modal Wireframe (HITL Center)
+
+`	ext
++--------------------------------------------------------------+
+| [!] ACTION APPROVAL REQUIRED                      [Close X]  |
++--------------------------------------------------------------+
+| Action: Send Project Status Update                           |
+| Target Service: Microsoft Graph API (Outlook)               |
+| Recipient: Aditya (aditya@example.com)                       |
+| Reason: User requested progress update to co-lead           |
+|                                                              |
+| Proposed Email Subject:                                      |
+| [FLOW Project - Weekly Progress Update                     ] |
+|                                                              |
+| Proposed Body:                                               |
+| +----------------------------------------------------------+ |
+| | Hi Aditya, here is our current sprint progress across    | |
+| | agent planning, approval flows, and graph integration.   | |
+| +----------------------------------------------------------+ |
+|                                                              |
+| [  Reject  ]              [ Modify Details ]   [  Approve  ] |
++--------------------------------------------------------------+
+`
+
+### 6.3 Action Verification & Proof Card Wireframe
+
+`	ext
++--------------------------------------------------------------+
+| [✓] ACTION VERIFIED & RECORDED                               |
++--------------------------------------------------------------+
+| Status: VERIFIED                                             |
+| Execution Timestamp: 2026-10-30 20:30:15 UTC                 |
+| Provider Receipt ID: AQMkADAwAT...                          |
+| Cryptographic Proof: sha256:7f83b165...                      |
+| Audit Reference: ACT-90412 (Activity Ledger)                 |
++--------------------------------------------------------------+
+`

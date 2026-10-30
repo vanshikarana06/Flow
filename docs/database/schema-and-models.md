@@ -1,1134 +1,407 @@
-# FLOW - Database Schema & Models
+# FLOW — Database Schema & Data Models
 
-Version: 1.0
-Document Type: Database Design
-Status: Draft
-
----
-
-# 1. Database Overview
-
-The FLOW database is the foundation of the platform.
-
-It stores:
-
-- User Information
-- Authentication Data
-- Personal Memory
-- Relationships
-- Tasks
-- Calendar Events
-- Email Metadata
-- Approvals
-- Execution Logs
-- Verification Results
-- Activity History
-
-The database is designed around FLOW's core principles:
-
-- Human Approval
-- Persistent Memory
-- Verification
-- Activity Tracking
-- Proactive Assistance
-- Reliability
+**Version:** 1.0  
+**Document Type:** Database Design & Entity Specification  
+**Status:** Approved Architecture  
+**Database Engine:** PostgreSQL 15+ (Hosted on Supabase)  
+**Extensions:** `uuid-ossp`, `pgvector` (Vector Embeddings)  
 
 ---
 
-# 2. Database Technology
+## 1. Overview
 
-## Primary Database
+The FLOW persistence layer is powered by **Supabase PostgreSQL** augmented with the **pgvector** extension. The schema is designed around strict relational integrity, immutable audit ledgers, idempotency enforcement, and vector similarity search for semantic memory retrieval.
 
-```text
-PostgreSQL
+---
+
+## 2. Entity Relationship Diagram (ERD)
+
+### ER Diagram
+
+```mermaid
+erDiagram
+    USERS ||--o{ CONNECTED_ACCOUNTS : has
+    USERS ||--o{ CONTACTS : knows
+    USERS ||--o{ RELATIONSHIPS : defines
+    USERS ||--o{ PREFERENCES : configures
+    USERS ||--o{ PERSONAL_EVENTS : tracks
+    USERS ||--o{ BEHAVIORAL_MEMORIES : exhibits
+    USERS ||--o{ TASKS : owns
+    USERS ||--o{ CALENDAR_EVENTS : schedules
+    USERS ||--o{ EMAIL_THREADS : receives
+    USERS ||--o{ APPROVAL_REQUESTS : reviews
+    USERS ||--o{ ACTIVITY_LOGS : generates
+    USERS ||--o{ PROACTIVE_ALERTS : receives
+
+    TASKS ||--o{ SUBTASKS : contains
+    APPROVAL_REQUESTS ||--o| VERIFICATION_RECEIPTS : verifies
+    APPROVAL_REQUESTS ||--o{ ACTIVITY_LOGS : records
+
+    USERS {
+        uuid id PK
+        string email UK
+        string full_name
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    CONNECTED_ACCOUNTS {
+        uuid id PK
+        uuid user_id FK
+        string provider
+        string account_email
+        text access_token_enc
+        text refresh_token_enc
+        timestamp expires_at
+    }
+
+    CONTACTS {
+        uuid id PK
+        uuid user_id FK
+        string name
+        string email
+        string role
+        text notes
+    }
+
+    RELATIONSHIPS {
+        uuid id PK
+        uuid user_id FK
+        uuid contact_id FK
+        string relation_type
+        int closeness_score
+    }
+
+    PREFERENCES {
+        uuid id PK
+        uuid user_id FK
+        time work_start
+        time work_end
+        int max_daily_meetings
+        int meeting_buffer_minutes
+        string communication_tone
+    }
+
+    PERSONAL_EVENTS {
+        uuid id PK
+        uuid user_id FK
+        string title
+        string category
+        date event_date
+        boolean recurring
+    }
+
+    BEHAVIORAL_MEMORIES {
+        uuid id PK
+        uuid user_id FK
+        text observation
+        vector embedding
+        float confidence
+        timestamp observed_at
+    }
+
+    TASKS {
+        uuid id PK
+        uuid user_id FK
+        string title
+        string task_type
+        string priority
+        timestamp due_date
+        timestamp scheduled_slot_start
+        timestamp scheduled_slot_end
+        string status
+        uuid source_email_id
+    }
+
+    CALENDAR_EVENTS {
+        uuid id PK
+        uuid user_id FK
+        string title
+        timestamp start_time
+        timestamp end_time
+        boolean is_focus_block
+        string external_provider
+        string external_event_id
+        string sync_status
+    }
+
+    EMAIL_THREADS {
+        uuid id PK
+        uuid user_id FK
+        string external_thread_id
+        string subject
+        text summary
+        boolean awaiting_reply
+        timestamp last_message_at
+    }
+
+    APPROVAL_REQUESTS {
+        uuid id PK
+        uuid user_id FK
+        string action_type
+        jsonb proposed_payload
+        jsonb modified_payload
+        string status
+        string idempotency_key UK
+        timestamp reviewed_at
+    }
+
+    VERIFICATION_RECEIPTS {
+        uuid id PK
+        uuid approval_id FK
+        string status
+        string external_resource_id
+        string proof_hash
+        jsonb verification_evidence
+        timestamp verified_at
+    }
+
+    ACTIVITY_LOGS {
+        uuid id PK
+        uuid user_id FK
+        string log_type
+        string action_name
+        jsonb details
+        timestamp created_at
+    }
+
+    PROACTIVE_ALERTS {
+        uuid id PK
+        uuid user_id FK
+        string alert_type
+        string severity
+        text message
+        boolean dismissed
+        timestamp created_at
+    }
 ```
 
-## Managed Service
+---
 
-```text
-Supabase
+## 3. Entity Relationship Flow
+
+Illustrates how entities relate and flow across lifecycle transitions from prompt to verified record.
+
+### Entity Relationship Flow Diagram
+
+```mermaid
+flowchart TD
+    UserEntity[(users)] --> AuthEntity[(connected_accounts)]
+    UserEntity --> MemoryEntities
+    
+    subgraph MemoryEntities ["Personal Memory Entities (pgvector + SQL)"]
+        Contacts[(contacts)]
+        Relationships[(relationships)]
+        Preferences[(preferences)]
+        PersonalEvents[(personal_events)]
+        Behavioral[(behavioral_memories: vector)]
+    end
+
+    UserEntity --> WorkEntities
+    
+    subgraph WorkEntities ["Productivity State Entities"]
+        Emails[(email_threads & messages)]
+        Calendar[(calendar_events)]
+        Tasks[(tasks & subtasks)]
+    end
+
+    Emails -.->|Email-to-Task Conversion| Tasks
+    Calendar -.->|Conflict Detection| ProactiveAlerts[(proactive_alerts)]
+    Tasks -.->|Deadline Detection| ProactiveAlerts
+
+    WorkEntities --> GovernanceEntities
+    
+    subgraph GovernanceEntities ["Trust & Governance Layer"]
+        ApprovalReq[(approval_requests: PENDING / APPROVED / MODIFIED)]
+        VerificationRec[(verification_receipts: VERIFIED / FAILED)]
+        ActivityLedger[(activity_logs: Immutable Ledger)]
+    end
+
+    ApprovalReq -->|On Execution| VerificationRec
+    VerificationRec -->|Record Evidence| ActivityLedger
+    ApprovalReq -->|Record Decision| ActivityLedger
 ```
 
 ---
 
-# 3. Entity Relationship Overview
+## 4. Detailed Table Definitions & SQL Schemas
 
-```text
-User
- │
- ├── Preferences
- │
- ├── Contacts
- │
- ├── Relationships
- │
- ├── Important Events
- │
- ├── Tasks
- │
- ├── Calendar Events
- │
- ├── Emails
- │
- ├── Approvals
- │
- ├── Activity Logs
- │
- └── Execution Logs
-```
-
----
-
-# 4. Core Tables
-
----
-
-# Users
-
-Stores user accounts.
-
-## Purpose
-
-Identity and account management.
-
----
-
-## Table
+### 4.1 Users & Authentication
 
 ```sql
-users
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "vector";
+
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    avatar_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE connected_accounts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    provider VARCHAR(50) NOT NULL, -- 'google' or 'microsoft'
+    account_email VARCHAR(255) NOT NULL,
+    access_token_enc TEXT NOT NULL,
+    refresh_token_enc TEXT NOT NULL,
+    token_expires_at TIMESTAMPTZ NOT NULL,
+    scopes TEXT[] NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, provider, account_email)
+);
 ```
 
----
-
-## Fields
+### 4.2 Personal Memory Layer (With pgvector)
 
 ```sql
-id UUID PRIMARY KEY
+CREATE TABLE contacts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    role VARCHAR(100),
+    organization VARCHAR(150),
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-email VARCHAR(255) UNIQUE
+CREATE TABLE relationships (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    contact_id UUID NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+    relation_type VARCHAR(100) NOT NULL, -- 'co-lead', 'client', 'mentor', 'peer'
+    closeness_score INT DEFAULT 1,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-full_name VARCHAR(255)
+CREATE TABLE preferences (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    work_start_time TIME DEFAULT '09:00:00',
+    work_end_time TIME DEFAULT '18:00:00',
+    max_daily_meetings INT DEFAULT 4,
+    meeting_buffer_minutes INT DEFAULT 15,
+    communication_tone VARCHAR(50) DEFAULT 'friendly_formal',
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-avatar_url TEXT
+CREATE TABLE personal_events (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    category VARCHAR(50) NOT NULL, -- 'birthday', 'anniversary', 'exam', 'deadline'
+    event_date DATE NOT NULL,
+    recurring BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-provider VARCHAR(50)
+CREATE TABLE behavioral_memories (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    observation TEXT NOT NULL,
+    embedding VECTOR(1536), -- Vector embedding for similarity retrieval
+    confidence FLOAT DEFAULT 1.0,
+    observed_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-created_at TIMESTAMP
-
-updated_at TIMESTAMP
+CREATE INDEX idx_behavioral_embedding ON behavioral_memories USING ivfflat (embedding vector_cosine_ops);
 ```
 
----
-
-## Example
-
-```json
-{
-  "id":"u1",
-  "email":"john@example.com",
-  "full_name":"John Doe"
-}
-```
-
----
-
-# Preferences
-
-Stores user preferences.
-
----
-
-## Purpose
-
-Personalize FLOW's behavior.
-
----
-
-## Table
+### 4.3 Tasks & Projects
 
 ```sql
-preferences
+CREATE TABLE tasks (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    task_type VARCHAR(50) NOT NULL DEFAULT 'quick', -- 'quick', 'project', 'study_plan', 'event_task'
+    priority VARCHAR(20) DEFAULT 'medium', -- 'low', 'medium', 'high', 'urgent'
+    due_date TIMESTAMPTZ,
+    scheduled_slot_start TIMESTAMPTZ,
+    scheduled_slot_end TIMESTAMPTZ,
+    status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'in_progress', 'completed', 'archived'
+    source_email_id VARCHAR(255),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE subtasks (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    completed BOOLEAN DEFAULT FALSE,
+    order_index INT DEFAULT 0
+);
 ```
 
----
-
-## Fields
+### 4.4 Calendar Events & Focus Blocks
 
 ```sql
-id UUID PRIMARY KEY
-
-user_id UUID
-
-key VARCHAR(100)
-
-value JSONB
-
-created_at TIMESTAMP
-
-updated_at TIMESTAMP
+CREATE TABLE calendar_events (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    start_time TIMESTAMPTZ NOT NULL,
+    end_time TIMESTAMPTZ NOT NULL,
+    is_focus_block BOOLEAN DEFAULT FALSE,
+    external_provider VARCHAR(50), -- 'microsoft' or 'google' or null (FLOW native)
+    external_event_id VARCHAR(255),
+    sync_status VARCHAR(50) DEFAULT 'in_sync',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 ```
 
----
-
-## Examples
-
-```json
-{
-  "key":"meeting_start_time",
-  "value":"10:00"
-}
-```
-
-```json
-{
-  "key":"writing_style",
-  "value":"formal"
-}
-```
-
----
-
-# Contacts
-
-Stores known people.
-
----
-
-## Purpose
-
-Relationship management.
-
----
-
-## Table
+### 4.5 Approvals, Verification & Activity Ledger
 
 ```sql
-contacts
+CREATE TABLE approval_requests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    action_type VARCHAR(100) NOT NULL, -- 'SEND_EMAIL', 'CREATE_EVENT', 'RESCHEDULE_EVENT', 'DELETE_TASK'
+    target_service VARCHAR(50) NOT NULL, -- 'microsoft_graph', 'gmail', 'google_calendar'
+    proposed_payload JSONB NOT NULL,
+    modified_payload JSONB,
+    status VARCHAR(50) NOT NULL DEFAULT 'PENDING', -- 'PENDING', 'APPROVED', 'MODIFIED', 'REJECTED'
+    idempotency_key VARCHAR(255) UNIQUE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    reviewed_at TIMESTAMPTZ
+);
+
+CREATE TABLE verification_receipts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    approval_id UUID UNIQUE NOT NULL REFERENCES approval_requests(id) ON DELETE CASCADE,
+    status VARCHAR(50) NOT NULL, -- 'VERIFIED', 'VERIFICATION_FAILED'
+    external_resource_id VARCHAR(255),
+    proof_hash VARCHAR(255) NOT NULL,
+    verification_evidence JSONB NOT NULL,
+    verified_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE activity_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    log_type VARCHAR(50) NOT NULL, -- 'EXECUTION', 'APPROVAL', 'VERIFICATION'
+    action_name VARCHAR(100) NOT NULL,
+    details JSONB NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE proactive_alerts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    alert_type VARCHAR(50) NOT NULL, -- 'DEADLINE_RISK', 'MISSING_REPLY', 'SCHEDULE_CONFLICT', 'HEALTH_ALERT'
+    severity VARCHAR(20) DEFAULT 'warning', -- 'info', 'warning', 'critical'
+    message TEXT NOT NULL,
+    dismissed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
 ```
-
----
-
-## Fields
-
-```sql
-id UUID PRIMARY KEY
-
-user_id UUID
-
-name VARCHAR(255)
-
-email VARCHAR(255)
-
-phone VARCHAR(50)
-
-organization VARCHAR(255)
-
-notes TEXT
-
-created_at TIMESTAMP
-```
-
----
-
-## Example
-
-```json
-{
-  "name":"Aditya",
-  "email":"aditya@gmail.com"
-}
-```
-
----
-
-# Relationships
-
-Stores relationship mappings.
-
----
-
-## Purpose
-
-Allows natural language references.
-
-Example:
-
-```text
-My Co-Lead
-
-My Manager
-
-My Mentor
-
-My Client
-```
-
----
-
-## Table
-
-```sql
-relationships
-```
-
----
-
-## Fields
-
-```sql
-id UUID PRIMARY KEY
-
-user_id UUID
-
-contact_id UUID
-
-relationship_label VARCHAR(100)
-
-created_at TIMESTAMP
-```
-
----
-
-## Example
-
-```json
-{
-  "relationship_label":"Co Lead"
-}
-```
-
----
-
-# Important Events
-
-Stores life events.
-
----
-
-## Purpose
-
-Reminders and proactive alerts.
-
----
-
-## Table
-
-```sql
-important_events
-```
-
----
-
-## Fields
-
-```sql
-id UUID PRIMARY KEY
-
-user_id UUID
-
-title VARCHAR(255)
-
-event_type VARCHAR(100)
-
-event_date DATE
-
-notes TEXT
-
-created_at TIMESTAMP
-```
-
----
-
-## Examples
-
-```text
-Birthday
-
-Anniversary
-
-Exam
-
-Interview
-
-Hackathon
-```
-
----
-
-# Tasks
-
-Stores user tasks.
-
----
-
-## Purpose
-
-Task management.
-
----
-
-## Table
-
-```sql
-tasks
-```
-
----
-
-## Fields
-
-```sql
-id UUID PRIMARY KEY
-
-user_id UUID
-
-title VARCHAR(255)
-
-description TEXT
-
-priority VARCHAR(50)
-
-status VARCHAR(50)
-
-task_type VARCHAR(100)
-
-due_date TIMESTAMP
-
-estimated_duration INTEGER
-
-parent_task_id UUID
-
-created_at TIMESTAMP
-
-updated_at TIMESTAMP
-```
-
----
-
-## Task Types
-
-```text
-Quick Task
-
-Project Task
-
-Study Task
-
-Event Task
-```
-
----
-
-## Status
-
-```text
-Pending
-
-In Progress
-
-Completed
-
-Cancelled
-```
-
----
-
-# Task Subtasks
-
----
-
-## Purpose
-
-Stores hierarchical task breakdowns.
-
----
-
-## Table
-
-```sql
-task_subtasks
-```
-
----
-
-## Fields
-
-```sql
-id UUID PRIMARY KEY
-
-task_id UUID
-
-title VARCHAR(255)
-
-status VARCHAR(50)
-
-order_number INTEGER
-```
-
----
-
-# Calendar Events
-
-Stores events managed by FLOW.
-
----
-
-## Purpose
-
-Internal calendar management.
-
----
-
-## Table
-
-```sql
-calendar_events
-```
-
----
-
-## Fields
-
-```sql
-id UUID PRIMARY KEY
-
-user_id UUID
-
-title VARCHAR(255)
-
-description TEXT
-
-start_time TIMESTAMP
-
-end_time TIMESTAMP
-
-event_type VARCHAR(100)
-
-status VARCHAR(50)
-
-external_provider VARCHAR(100)
-
-external_id VARCHAR(255)
-
-created_at TIMESTAMP
-```
-
----
-
-## Event Types
-
-```text
-Meeting
-
-Birthday
-
-Exam
-
-Interview
-
-Reminder
-
-Study Session
-
-Focus Block
-```
-
----
-
-# Calendar Participants
-
----
-
-## Purpose
-
-Meeting attendee management.
-
----
-
-## Table
-
-```sql
-calendar_participants
-```
-
----
-
-## Fields
-
-```sql
-id UUID PRIMARY KEY
-
-event_id UUID
-
-contact_id UUID
-
-attendance_status VARCHAR(50)
-```
-
----
-
-# Email Metadata
-
-Stores email references.
-
----
-
-## Purpose
-
-Email search and tracking.
-
----
-
-## Table
-
-```sql
-email_metadata
-```
-
----
-
-## Fields
-
-```sql
-id UUID PRIMARY KEY
-
-user_id UUID
-
-provider VARCHAR(50)
-
-message_id VARCHAR(255)
-
-thread_id VARCHAR(255)
-
-subject VARCHAR(255)
-
-sender_email VARCHAR(255)
-
-received_at TIMESTAMP
-```
-
----
-
-# Email Summaries
-
----
-
-## Purpose
-
-AI-generated email summaries.
-
----
-
-## Table
-
-```sql
-email_summaries
-```
-
----
-
-## Fields
-
-```sql
-id UUID PRIMARY KEY
-
-email_id UUID
-
-summary TEXT
-
-generated_at TIMESTAMP
-```
-
----
-
-# Email Action Items
-
----
-
-## Purpose
-
-Stores extracted tasks from emails.
-
----
-
-## Table
-
-```sql
-email_action_items
-```
-
----
-
-## Fields
-
-```sql
-id UUID PRIMARY KEY
-
-email_id UUID
-
-task_id UUID
-
-confidence_score NUMERIC
-```
-
----
-
-# Approvals
-
-Stores pending approvals.
-
----
-
-## Purpose
-
-Human-in-the-loop workflow.
-
----
-
-## Table
-
-```sql
-approvals
-```
-
----
-
-## Fields
-
-```sql
-id UUID PRIMARY KEY
-
-user_id UUID
-
-action_type VARCHAR(100)
-
-action_payload JSONB
-
-status VARCHAR(50)
-
-approval_reason TEXT
-
-created_at TIMESTAMP
-
-updated_at TIMESTAMP
-```
-
----
-
-## Status
-
-```text
-Pending
-
-Approved
-
-Rejected
-
-Expired
-```
-
----
-
-# Execution Logs
-
-Stores execution details.
-
----
-
-## Purpose
-
-Auditability and retry safety.
-
----
-
-## Table
-
-```sql
-execution_logs
-```
-
----
-
-## Fields
-
-```sql
-id UUID PRIMARY KEY
-
-user_id UUID
-
-approval_id UUID
-
-action_type VARCHAR(100)
-
-execution_status VARCHAR(50)
-
-provider VARCHAR(50)
-
-provider_response JSONB
-
-executed_at TIMESTAMP
-```
-
----
-
-## Status
-
-```text
-Pending
-
-Executing
-
-Completed
-
-Failed
-```
-
----
-
-# Verification Logs
-
-Stores verification results.
-
----
-
-## Purpose
-
-Proof that actions succeeded.
-
----
-
-## Table
-
-```sql
-verification_logs
-```
-
----
-
-## Fields
-
-```sql
-id UUID PRIMARY KEY
-
-execution_log_id UUID
-
-verification_type VARCHAR(100)
-
-verification_status VARCHAR(50)
-
-evidence JSONB
-
-verified_at TIMESTAMP
-```
-
----
-
-## Examples
-
-```text
-Email Sent
-
-Meeting Created
-
-Task Saved
-```
-
----
-
-# Activity Logs
-
-Stores all user-visible activity.
-
----
-
-## Purpose
-
-Timeline and audit history.
-
----
-
-## Table
-
-```sql
-activity_logs
-```
-
----
-
-## Fields
-
-```sql
-id UUID PRIMARY KEY
-
-user_id UUID
-
-activity_type VARCHAR(100)
-
-title VARCHAR(255)
-
-description TEXT
-
-reference_id UUID
-
-created_at TIMESTAMP
-```
-
----
-
-# Notifications
-
-Stores alerts.
-
----
-
-## Purpose
-
-Proactive intelligence.
-
----
-
-## Table
-
-```sql
-notifications
-```
-
----
-
-## Fields
-
-```sql
-id UUID PRIMARY KEY
-
-user_id UUID
-
-title VARCHAR(255)
-
-message TEXT
-
-notification_type VARCHAR(100)
-
-read BOOLEAN
-
-created_at TIMESTAMP
-```
-
----
-
-## Types
-
-```text
-Deadline Alert
-
-Conflict Alert
-
-Birthday Reminder
-
-Follow-up Reminder
-
-Approval Request
-```
-
----
-
-# AI Memory Records
-
-Stores long-term memory.
-
----
-
-## Purpose
-
-Persistent AI context.
-
----
-
-## Table
-
-```sql
-memory_records
-```
-
----
-
-## Fields
-
-```sql
-id UUID PRIMARY KEY
-
-user_id UUID
-
-memory_type VARCHAR(100)
-
-memory_key VARCHAR(255)
-
-memory_value JSONB
-
-confidence_score NUMERIC
-
-created_at TIMESTAMP
-
-updated_at TIMESTAMP
-```
-
----
-
-## Examples
-
-```text
-Aditya is my co-lead
-
-Prefer formal writing
-
-No meetings before 10 AM
-
-Dad's birthday: April 12
-```
-
----
-
-# Dashboard Cache
-
-Used for quick dashboard loading.
-
----
-
-## Table
-
-```sql
-dashboard_cache
-```
-
----
-
-## Fields
-
-```sql
-id UUID PRIMARY KEY
-
-user_id UUID
-
-cache_data JSONB
-
-generated_at TIMESTAMP
-```
-
----
-
-# 5. Important Relationships
-
-```text
-User
- ├── Preferences
- ├── Contacts
- ├── Relationships
- ├── Important Events
- ├── Tasks
- ├── Calendar Events
- ├── Emails
- ├── Approvals
- ├── Activity Logs
- ├── Notifications
- └── Memory Records
-```
-
----
-
-# 6. Indexing Strategy
-
-## High Priority Indexes
-
-```sql
-users.email
-
-contacts.email
-
-tasks.user_id
-
-tasks.due_date
-
-calendar_events.user_id
-
-calendar_events.start_time
-
-approvals.user_id
-
-approvals.status
-
-activity_logs.user_id
-
-notifications.user_id
-```
-
----
-
-# 7. MVP Tables (Hackathon Scope)
-
-Required Tables:
-
-```text
-users
-
-preferences
-
-contacts
-
-relationships
-
-tasks
-
-calendar_events
-
-approvals
-
-execution_logs
-
-verification_logs
-
-activity_logs
-
-memory_records
-```
-
----
-
-# 8. Future Tables
-
-Planned for future versions:
-
-```text
-teams
-
-projects
-
-workspaces
-
-shared_calendars
-
-voice_transcripts
-
-knowledge_base
-
-custom_ai_agents
-```
-
----
-
-# Database Design Principles
-
-FLOW's database is designed around:
-
-✅ Persistent Personal Memory
-
-✅ Human Approval Workflows
-
-✅ Verification-Based Execution
-
-✅ Activity Auditing
-
-✅ Smart Scheduling
-
-✅ Extensible Agent Architecture
-
-The schema ensures that every action can be planned, approved, executed, verified, logged, and later explained to the user.

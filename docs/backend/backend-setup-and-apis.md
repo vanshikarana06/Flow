@@ -1,1071 +1,213 @@
-# FLOW - Backend Setup & APIs
+# FLOW — Backend Setup & API Specifications
 
-Version: 1.0
-Document Type: Backend Architecture & API Specification
-Status: Draft
+**Version:** 1.0  
+**Document Type:** Backend Architecture & API Specification  
+**Status:** Approved Architecture  
+**Runtime:** Node.js 20+ / NestJS  
+**Deployment Platform:** Render  
 
 ---
 
-# 1. Backend Overview
-
-The FLOW backend serves as the central orchestration layer responsible for:
-
-- User Authentication
-- Agent Execution
-- Workflow Management
-- Approval Management
-- Verification Operations
-- Task Management
-- Calendar Management
-- Email Management
-- Memory Management
-- Activity Logging
-
-The backend acts as the bridge between:
-
-```text
-Frontend
-↓
-FLOW Core Services
-↓
-AI Models
-↓
-External Providers
-↓
-Database
-```
-
----
-
-# 2. Technology Stack
-
-## Core Backend
-
-```text
-Node.js
-NestJS
-TypeScript
-```
-
-Reason:
-
-- Scalable
-- Modular
-- Type-safe
-- Rapid hackathon development
-
----
-
-## Database
-
-```text
-PostgreSQL
-
-Supabase
-```
-
-Used for:
-
-- User Data
-- Memory Storage
-- Tasks
-- Calendar
-- Logs
-- Approvals
-
----
-
-## AI Layer
-
-```text
-LiteLLM
-Ollama
-Qwen2.5
-Llama 3
-```
-
-Purpose:
-
-- Intent Detection
-- Planning
-- Reasoning
-- Email Generation
-- Task Breakdown
-
----
-
-## External Integrations
-
-```text
-Google Gmail API
-
-Google Calendar API
-
-Microsoft Graph API
-
-Microsoft To Do API
-```
-
----
-
-## Deployment
-
-```text
-Render
-```
-
-Responsibilities:
-
-- API Hosting
-- Workflow Engine
-- Agent Orchestration
-- Authentication
-
----
-
-# 3. Backend Architecture
-
-```text
-src
-│
-├── auth
-│
-├── users
-│
-├── dashboard
-│
-├── agent
-│
-├── approvals
-│
-├── activities
-│
-├── memory
-│
-├── calendar
-│
-├── tasks
-│
-├── email
-│
-├── workflow
-│
-├── verification
-│
-├── integrations
-│
-├── notifications
-│
-├── database
-│
-└── shared
-```
-
----
-
-# 4. Core Backend Modules
-
----
-
-# 4.1 Authentication Module
-
-Purpose:
-
-Manage user access and connected accounts.
-
----
-
-## Responsibilities
-
-- Login
-- Registration
-- OAuth Authentication
-- Session Management
-- Token Refresh
-
----
-
-## Supported Providers
-
-```text
-Google OAuth
-
-Microsoft OAuth
-```
-
----
-
-# 4.2 User Module
-
-Purpose:
-
-Manage users.
-
----
-
-## Stores
-
-```text
-Profile
-
-Settings
-
-Preferences
-
-Subscription
-```
-
----
-
-# 4.3 Agent Module
-
-Purpose:
-
-The intelligence layer.
-
----
-
-## Components
-
-### Intent Detector
-
-Converts:
-
-```text
-Send a project update to Aditya.
-```
-
-into
-
-```json
-{
-  "intent": "SEND_EMAIL"
-}
-```
-
----
-
-### Planner
-
-Converts intent into action plans.
-
-Example:
-
-```text
-Find recipient
-
-Generate email
-
-Request approval
-
-Send email
-
-Verify result
-
-Save activity
-```
-
----
-
-### Context Manager
-
-Provides:
-
-```text
-Memory
-
-Tasks
-
-Calendar
-
-Contacts
-
-Preferences
-```
-
-to the AI.
-
----
-
-# 4.4 Memory Module
-
-Purpose:
-
-Provides persistent memory.
-
----
-
-## Memory Types
-
-### Contact Memory
-
-```text
-Name
-
-Email
-
-Role
-```
-
----
-
-### Relationship Memory
-
-```text
-Co Lead
-
-Manager
-
-Friend
-
-Client
-```
-
----
-
-### Preference Memory
-
-```text
-Work Hours
-
-Meeting Preferences
-
-Communication Style
-```
-
----
-
-### Event Memory
-
-```text
-Birthdays
-
-Anniversaries
-
-Exams
-
-Interviews
-```
-
----
-
-# 4.5 Email Module
-
-Purpose:
-
-Manages all email actions.
-
----
-
-## Features
-
-### Read Emails
-
-### Draft Emails
-
-### Send Emails
-
-### Search Emails
-
-### Summarize Emails
-
-### Follow-Up Analysis
-
----
-
-## Integrations
-
-```text
-Gmail API
-
-Microsoft Graph
-```
-
----
-
-# 4.6 Task Module
-
-Purpose:
-
-Task creation and management.
-
----
-
-## Supported Task Types
-
-### Quick Task
-
-```text
-Buy Milk
-```
-
----
-
-### Project Task
-
-```text
-Build FLOW
-```
-
----
-
-### Study Plan
-
-```text
-Learn React
-```
-
----
-
-### Event Task
-
-```text
-Hackathon Planning
-```
-
----
-
-## Capabilities
-
-- Create Task
-- Update Task
-- Complete Task
-- Delete Task
-- Schedule Task
-- Prioritize Task
-
----
-
-# 4.7 Calendar Module
-
-Purpose:
-
-FLOW Calendar Management.
-
----
-
-## Features
-
-### Create Event
-
-### Update Event
-
-### Delete Event
-
-### Reschedule Event
-
-### Detect Conflict
-
-### Create Focus Session
-
-### Reminder Creation
-
----
-
-## Event Types
-
-```text
-Meeting
-
-Birthday
-
-Exam
-
-Interview
-
-Deadline
-
-Personal Event
-```
-
----
-
-# 4.8 Approval Module
-
-Purpose:
-
-Human-in-the-loop control.
-
----
-
-## Approval Required For
-
-### Send Email
-
-### Create Meeting
-
-### Reschedule Meeting
-
-### Delete Task
-
-### Bulk Operations
-
----
-
-## Approval States
-
-```text
-Draft
-
-Pending
-
-Approved
-
-Rejected
-
-Expired
-```
-
----
-
-# 4.9 Verification Module
-
-Purpose:
-
-Verify external actions.
-
----
-
-## Email Verification
-
-Checks:
-
-```text
-Email Sent
-
-Message ID Exists
-
-Provider Accepted
-```
-
----
-
-## Calendar Verification
-
-Checks:
-
-```text
-Event Exists
-
-Attendees Added
-
-Time Updated
-```
-
----
-
-## Task Verification
-
-Checks:
-
-```text
-Task Stored
-
-Changes Persisted
-```
-
----
-
-# 4.10 Activity Module
-
-Purpose:
-
-Audit trail.
-
----
-
-## Stores
-
-```text
-Action
-
-Status
-
-Timestamp
-
-Verification Result
-
-User
-```
-
----
-
-# 5. API Architecture
-
-```text
-/v1/auth
-
-/v1/users
-
-/v1/dashboard
-
-/v1/agent
-
-/v1/tasks
-
-/v1/calendar
-
-/v1/emails
-
-/v1/memory
-
-/v1/approvals
+## 1. Overview
 
-/v1/activities
-```
-
----
-
-# 6. Authentication APIs
-
----
-
-## Login
-
-```http
-POST /v1/auth/login
-```
-
----
-
-### Response
-
-```json
-{
-  "accessToken": "...",
-  "refreshToken": "..."
-}
-```
-
----
-
-## Logout
-
-```http
-POST /v1/auth/logout
-```
-
----
-
-## Current User
-
-```http
-GET /v1/auth/me
-```
-
----
-
-# 7. Agent APIs
-
----
-
-## Chat With FLOW
-
-```http
-POST /v1/agent/chat
-```
-
-### Request
-
-```json
-{
-  "message": "Send project update to Aditya"
-}
-```
-
----
-
-### Response
-
-```json
-{
-  "planId": "123",
-  "intent": "SEND_EMAIL",
-  "requiresApproval": true
-}
-```
-
----
-
-## Generate Plan
-
-```http
-POST /v1/agent/plan
-```
-
----
-
-## Execute Plan
-
-```http
-POST /v1/agent/execute
-```
-
----
-
-# 8. Email APIs
-
----
-
-## Get Emails
-
-```http
-GET /v1/emails
-```
-
----
-
-## Search Emails
-
-```http
-GET /v1/emails/search
-```
-
----
-
-## Draft Email
-
-```http
-POST /v1/emails/draft
-```
-
----
-
-## Send Email
-
-```http
-POST /v1/emails/send
-```
-
-Approval required.
-
----
-
-## Summarize Thread
-
-```http
-POST /v1/emails/summarize
-```
-
----
-
-# 9. Task APIs
-
----
-
-## Get Tasks
-
-```http
-GET /v1/tasks
-```
-
----
-
-## Create Task
-
-```http
-POST /v1/tasks
-```
-
----
-
-## Update Task
-
-```http
-PATCH /v1/tasks/:id
-```
-
----
-
-## Complete Task
-
-```http
-PATCH /v1/tasks/:id/complete
-```
-
----
-
-## Delete Task
-
-```http
-DELETE /v1/tasks/:id
-```
-
----
-
-# 10. Calendar APIs
-
----
-
-## Get Events
-
-```http
-GET /v1/calendar/events
-```
-
----
-
-## Create Event
-
-```http
-POST /v1/calendar/event
-```
-
----
-
-## Update Event
-
-```http
-PATCH /v1/calendar/event/:id
-```
-
----
-
-## Delete Event
-
-```http
-DELETE /v1/calendar/event/:id
-```
-
----
-
-## Detect Conflicts
-
-```http
-POST /v1/calendar/conflicts
-```
-
----
-
-## Generate Schedule
-
-```http
-POST /v1/calendar/optimize
-```
-
----
-
-# 11. Memory APIs
-
----
-
-## Get Memory
-
-```http
-GET /v1/memory
-```
-
----
-
-## Add Contact
-
-```http
-POST /v1/memory/contact
-```
-
----
-
-## Add Relationship
-
-```http
-POST /v1/memory/relationship
-```
-
----
-
-## Save Preference
-
-```http
-POST /v1/memory/preference
-```
-
----
-
-## Add Important Date
-
-```http
-POST /v1/memory/event
-```
-
----
-
-# 12. Approval APIs
-
----
-
-## Get Pending Approvals
-
-```http
-GET /v1/approvals
-```
-
----
-
-## Approve Action
-
-```http
-POST /v1/approvals/:id/approve
-```
-
----
-
-## Reject Action
-
-```http
-POST /v1/approvals/:id/reject
-```
-
----
-
-## Modify Action
-
-```http
-POST /v1/approvals/:id/modify
-```
-
----
+The FLOW backend is an enterprise-structured, modular API service built using **NestJS** and **TypeScript**, deployed on **Render**. It orchestrates the core agent reasoning pipelines, manages the Human-in-the-Loop approval workflows, executes verified mutations across external APIs (Microsoft Graph, Gmail, Google Calendar), and persists data in **Supabase (PostgreSQL + pgvector)**.
 
-# 13. Dashboard APIs
-
----
-
-## Dashboard Summary
-
-```http
-GET /v1/dashboard
-```
-
-Response includes:
-
-- Tasks
-- Events
-- Emails
-- Alerts
-- Approvals
-
----
-
-## Dashboard Notifications
-
-```http
-GET /v1/dashboard/notifications
-```
-
----
-
-## Dashboard Activity Feed
-
-```http
-GET /v1/dashboard/activity
-```
-
----
-
-# 14. Activity APIs
-
----
-
-## Get Activity Logs
-
-```http
-GET /v1/activities
-```
-
----
-
-## Action Details
-
-```http
-GET /v1/activities/:id
-```
-
----
-
-## Verification Details
-
-```http
-GET /v1/activities/:id/verification
-```
-
----
-
-# 15. Realtime Events (WebSockets)
-
-Purpose:
-
-Push live updates to frontend.
-
----
-
-## Channel Types
-
-```text
-approvals
-
-activities
-
-tasks
-
-calendar
-
-notifications
-```
-
----
-
-## Events
-
-```text
-approval.created
-
-approval.updated
-
-task.created
-
-task.updated
-
-calendar.conflict
-
-verification.completed
-
-email.sent
-```
-
 ---
 
-# 16. Future APIs
+## 2. Backend Module Architecture
 
-Planned:
+The backend implements the 10 major modules mandated by the FLOW System Architecture Source of Truth.
 
-```text
-Slack Integration
+### Backend Module Diagram
 
-Discord Integration
+```mermaid
+flowchart TD
+    subgraph NestApp ["NestJS Application Module (AppModule)"]
+        AuthModule["1. AuthModule\n(OAuth2, JWT, PKCE, Tokens)"]
+        AgentModule["2. AgentModule\n(Planner, Orchestration, Tool Calls)"]
+        MemoryModule["3. MemoryModule\n(5 Memory Types, pgvector Search)"]
+        EmailModule["4. EmailModule\n(Drafts, Summaries, Follow-ups)"]
+        CalendarModule["5. CalendarModule\n(FLOW Calendar, Sync, Conflicts)"]
+        TasksModule["6. TasksModule\n(Breakdown, Priorities, Study/Project)"]
+        ApprovalsModule["7. ApprovalsModule\n(Approve, Reject, Modify State Machine)"]
+        VerificationModule["8. VerificationModule\n(Evidence Check, Idempotency)"]
+        ActivitiesModule["9. ActivitiesModule\n(Activity Ledger, Audit Logs)"]
+        DashboardModule["10. DashboardModule\n(Unified Overview & Proactive Alerts)"]
+    end
 
-Telegram Integration
+    subgraph DataIntegrations ["Infrastructure & Integrations"]
+        SupabasePostgres[("Supabase PostgreSQL\n+ pgvector")]
+        LocalAI["LiteLLM / Ollama Qwen 2.5\n(Cloudflare Tunnel)"]
+        MSGraphAPI["Microsoft Graph API"]
+        GoogleAPIs["Gmail & Google Calendar APIs"]
+    end
+
+    AgentModule <--> LocalAI
+    AgentModule --> MemoryModule
+    AgentModule --> ApprovalsModule
+    ApprovalsModule --> EmailModule
+    ApprovalsModule --> CalendarModule
+    ApprovalsModule --> TasksModule
 
-WhatsApp Integration
+    EmailModule --> MSGraphAPI
+    EmailModule --> GoogleAPIs
+    CalendarModule --> MSGraphAPI
+    CalendarModule --> GoogleAPIs
+    TasksModule --> MSGraphAPI
 
-Voice Agent API
+    EmailModule --> VerificationModule
+    CalendarModule --> VerificationModule
+    TasksModule --> VerificationModule
 
-External Plugin System
+    VerificationModule --> ActivitiesModule
+    ApprovalsModule --> ActivitiesModule
 
-MCP Tool Integration
+    AllModules[All Modules] -.-> SupabasePostgres
 ```
 
 ---
-
-# Backend Summary
-
-The FLOW backend is responsible for orchestration, execution, approval, verification, memory management, and integration with external providers.
-
-It follows a modular architecture where:
-
-- Agent Module makes decisions.
-- Workflow Module controls execution.
-- Approval Module protects users.
-- Verification Module confirms results.
-- Integration Modules connect external services.
-- Activity Module maintains complete auditability.
 
-This design provides scalability, transparency, reliability, and maintainability while remaining suitable for rapid hackathon development.
+## 3. API Layer Architecture
+
+The API layer manages client request ingress, authentication guards, input validation pipes, and real-time WebSocket events.
+
+### API Layer Architecture Diagram
+
+```mermaid
+flowchart LR
+    subgraph Client ["Client Layer (Next.js / Vercel)"]
+        RESTClient["HTTP REST Client\n(TanStack Query)"]
+        WSClient["WebSocket Client\n(Socket.io / WS)"]
+    end
+
+    subgraph APILayer ["NestJS API Layer"]
+        CORS["CORS & Rate Limiter Guard"]
+        AuthGuard["JWT / OAuth2 AuthGuard"]
+        ValidationPipe["Class-Validator Pipes"]
+        Interceptors["Logging & Transform Interceptors"]
+        Controllers["REST & WebSocket Controllers"]
+    end
+
+    subgraph ServiceLayer ["Service & Domain Logic Layer"]
+        Services["Domain Services (Agent, Approvals, Memory, etc.)"]
+    end
+
+    RESTClient -- "HTTPS Requests" --> CORS
+    WSClient -- "WSS Connections" --> CORS
+    CORS --> AuthGuard
+    AuthGuard --> ValidationPipe
+    ValidationPipe --> Interceptors
+    Interceptors --> Controllers
+    Controllers --> Services
+```
+
+---
+
+## 4. Service Communication Diagram
+
+Illustrates the decoupled event-driven and procedural interactions between backend services during a coordinated productivity request.
+
+### Service Communication Diagram
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant UI as Next.js Client
+    participant Dash as DashboardController
+    participant Agent as AgentService
+    participant Mem as MemoryService
+    participant LLM as LiteLLMClient (Qwen 2.5)
+    participant Appr as ApprovalsService
+    participant Mail as EmailService
+    participant Verif as VerificationService
+    participant Act as ActivitiesService
+
+    UI->>Agent: POST /api/agent/dispatch (prompt)
+    Agent->>Mem: Query Contact & Preferences (Aditya)
+    Mem-->>Agent: Contact & Preference Context
+    Agent->>LLM: Formulate Execution Plan & Email Draft
+    LLM-->>Agent: Plan: [SEND_EMAIL, verify]
+    
+    Agent->>Appr: createPendingApproval(payload)
+    Appr-->>UI: WebSocket Event: 'approval.pending'
+    
+    UI->>Appr: POST /api/approvals/:id/action { action: 'APPROVE' }
+    Appr->>Mail: sendEmail(payload)
+    Mail->>Mail: Call Microsoft Graph / Gmail
+    Mail-->>Appr: Provider Response (202 Accepted, MessageID)
+    
+    Appr->>Verif: verifyAction(MessageID, SentFolderCheck)
+    Verif-->>Appr: Verification Status: VERIFIED
+    
+    Appr->>Act: logActivity(Execution, Approval, Verification)
+    Act-->>UI: WebSocket Event: 'activity.recorded'
+    Appr-->>UI: Return HTTP 200 { status: 'COMPLETED_AND_VERIFIED' }
+```
+
+---
+
+## 5. Comprehensive REST API Specifications
+
+### 5.1 Authentication Module (`/api/auth`)
+- `POST /api/auth/login/google` — Initiates Google OAuth2 PKCE flow.
+- `GET /api/auth/callback/google` — Exchanges code for tokens and issues session JWT.
+- `POST /api/auth/login/microsoft` — Initiates Microsoft 365 OAuth2 code flow.
+- `GET /api/auth/callback/microsoft` — Exchanges code for Microsoft Graph tokens.
+- `POST /api/auth/refresh` — Refreshes access tokens using stored refresh tokens.
+- `GET /api/auth/me` — Returns current authenticated user profile and connected accounts.
+
+### 5.2 Agent Module (`/api/agent`)
+- `POST /api/agent/dispatch` — Accepts natural language prompt, resolves context, and initiates planning.
+- `GET /api/agent/plans/:id` — Retrieves status, reasoning chain, and execution steps of a plan.
+- `POST /api/agent/plans/:id/cancel` — Cancels an in-progress plan.
+- `GET /api/agent/history` — Returns recent conversational interactions.
+
+### 5.3 Memory Module (`/api/memory`)
+- `GET /api/memory/contacts` — Lists stored contacts and associated roles.
+- `POST /api/memory/contacts` — Creates or updates contact memory.
+- `GET /api/memory/relationships` — Returns relationship mappings (e.g., co-lead, mentor).
+- `GET /api/memory/preferences` — Returns user scheduling and communication preferences.
+- `PUT /api/memory/preferences` — Updates preference attributes.
+- `GET /api/memory/events` — Lists personal milestones, birthdays, anniversaries, and exams.
+- `POST /api/memory/search-vector` — Performs pgvector cosine similarity search over behavioral memories.
+
+### 5.4 Email Module (`/api/email`)
+- `GET /api/email/inbox` — Fetches unified email feed from connected Microsoft Graph and Gmail accounts.
+- `POST /api/email/draft` — Uses AI to compose an email draft from prompt instructions.
+- `POST /api/email/send` — Triggers email dispatch (requires valid approval token).
+- `POST /api/email/summarize` — Generates bullet-point summaries of an email thread.
+- `POST /api/email/convert-to-task` — Extracts action items and deadline from an email into a task.
+- `GET /api/email/follow-ups` — Returns sent emails awaiting responses past configured threshold.
+
+### 5.5 Calendar Module (`/api/calendar`)
+- `GET /api/calendar/events` — Fetches unified events from FLOW calendar and external sync providers.
+- `POST /api/calendar/events` — Creates a new calendar event (approval gated for meetings with attendees).
+- `PUT /api/calendar/events/:id/reschedule` — Reschedules an event with conflict check.
+- `GET /api/calendar/conflicts` — Detects and returns overlapping events and task blocks.
+- `POST /api/calendar/focus-blocks` — Generates focus blocks in available free slots.
+
+### 5.6 Task Management Module (`/api/tasks`)
+- `GET /api/tasks` — Lists tasks filterable by category (Quick, Project, Study, Event).
+- `POST /api/tasks` — Creates a new task.
+- `POST /api/tasks/breakdown` — Breaks a complex objective into subtasks using LiteLLM/Qwen 2.5.
+- `POST /api/tasks/prioritize` — Recalculates priority scores across all active tasks.
+- `PUT /api/tasks/:id/schedule` — Assigns a task to a dedicated calendar slot.
+- `PATCH /api/tasks/:id/status` — Updates status (`PENDING`, `IN_PROGRESS`, `COMPLETED`).
+
+### 5.7 Approval Center Module (`/api/approvals`)
+- `GET /api/approvals/pending` — Returns all actions awaiting human review.
+- `POST /api/approvals/:id/approve` — Confirms execution of the proposed action as-is.
+- `POST /api/approvals/:id/reject` — Rejects the proposed action and terminates the plan.
+- `POST /api/approvals/:id/modify` — Submits modified payload attributes and approves the revised action.
+
+### 5.8 Verification Module (`/api/verification`)
+- `GET /api/verification/receipts/:actionId` — Returns cryptographic proof, external resource ID, and verification status.
+- `POST /api/verification/verify-manual` — Forces a re-verification check against external APIs.
+
+### 5.9 Activities Module (`/api/activities`)
+- `GET /api/activities/ledger` — Returns chronological, immutable ledger of all system actions.
+- `GET /api/activities/export` — Exports audit trail for compliance and hackathon judges review.
+
+### 5.10 Dashboard Module (`/api/dashboard`)
+- `GET /api/dashboard/summary` — Aggregates pending approvals, upcoming events, priority tasks, and urgent emails into a single fast payload.
+- `GET /api/dashboard/proactive-alerts` — Returns deadline risks, missing replies, and schedule health alerts.
