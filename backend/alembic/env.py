@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 from app.core.config import get_settings
 from app.database.base import Base
+from app.database.session import clean_async_db_url
 import app.database.models # Ensure all models are registered in Base.metadata
 
 config = context.config
@@ -14,11 +15,10 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 settings = get_settings()
-db_url = settings.DATABASE_URL
-if db_url.startswith("postgresql://"):
-    db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+db_url = clean_async_db_url(settings.DATABASE_URL)
 
-config.set_main_option("sqlalchemy.url", db_url)
+# Escape '%' for configparser interpolation to support percent-encoded passwords
+config.set_main_option("sqlalchemy.url", db_url.replace("%", "%%"))
 
 target_metadata = Base.metadata
 

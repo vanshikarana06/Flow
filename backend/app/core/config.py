@@ -1,7 +1,8 @@
 from functools import lru_cache
-from typing import List
+from typing import List, Union
+import json
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
+from pydantic import Field, field_validator
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
@@ -12,7 +13,22 @@ class Settings(BaseSettings):
     PORT: int = 4000
     APP_URL: str = "https://api.flow.dev"
     FRONTEND_URL: str = "https://app.flow.dev"
-    CORS_ORIGINS: List[str] = ["https://app.flow.dev", "http://localhost:3000"]
+    CORS_ORIGINS: Union[str, List[str]] = ["https://app.flow.dev", "http://localhost:3000"]
+
+    @field_validator("CORS_ORIGINS", mode="after")
+    @classmethod
+    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return []
+            if v.startswith("[") and v.endswith("]"):
+                try:
+                    return json.loads(v)
+                except Exception:
+                    pass
+            return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return v
 
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/flow"

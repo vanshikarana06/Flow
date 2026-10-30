@@ -1,12 +1,21 @@
 from typing import AsyncGenerator
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from app.core.config import get_settings
 
-settings = get_settings()
+def clean_async_db_url(raw_url: str) -> str:
+    if raw_url.startswith("postgresql://"):
+        raw_url = raw_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    url = make_url(raw_url)
+    query = dict(url.query)
+    # Strip parameters unsupported by asyncpg driver (e.g. schema=public from Supabase/Prisma)
+    query.pop("schema", None)
+    if "sslmode" in query:
+        query["ssl"] = query.pop("sslmode")
+    return url.set(query=query).render_as_string(hide_password=False)
 
-db_url = settings.DATABASE_URL
-if db_url.startswith("postgresql://"):
-    db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+settings = get_settings()
+db_url = clean_async_db_url(settings.DATABASE_URL)
 
 engine = create_async_engine(
     db_url,

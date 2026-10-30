@@ -282,3 +282,4 @@ Repeat the exact same `curl` command immediately.
 }
 ```
 *No duplicate email is sent; the previous delivery receipt is returned from cache.*
+

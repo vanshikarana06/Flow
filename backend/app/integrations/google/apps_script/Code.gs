@@ -179,3 +179,4 @@ function createJsonResponse(data, statusCode) {
   output.setMimeType(ContentService.MimeType.JSON);
   return output;
 }
+
