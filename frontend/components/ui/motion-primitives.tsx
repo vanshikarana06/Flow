@@ -1,9 +1,8 @@
 "use client";
 
 import React from "react";
-import { motion, AnimatePresence, HTMLMotionProps } from "framer-motion";
 
-interface FadeInProps extends HTMLMotionProps<"div"> {
+interface FadeInProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   delay?: number;
   duration?: number;
@@ -15,71 +14,44 @@ export function FadeIn({
   delay = 0,
   duration = 0.25,
   className = "",
+  style,
   ...props
 }: FadeInProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 4 }}
-      transition={{ duration, delay, ease: [0.16, 1, 0.3, 1] }}
-      className={className}
+    <div
+      className={`animate-in fade-in-0 duration-300 fill-mode-both ${className}`}
+      style={{
+        animationDelay: delay ? `${delay}s` : undefined,
+        animationDuration: `${duration}s`,
+        ...style,
+      }}
       {...props}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }
 
 export function StaggerContainer({
   children,
-  staggerDelay = 0.04,
   className = "",
-}: {
-  children: React.ReactNode;
-  staggerDelay?: number;
-  className?: string;
-}) {
+  ...props
+}: React.HTMLAttributes<HTMLDivElement> & { staggerDelay?: number }) {
   return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={{
-        hidden: { opacity: 0 },
-        visible: {
-          opacity: 1,
-          transition: {
-            staggerChildren: staggerDelay,
-          },
-        },
-      }}
-      className={className}
-    >
+    <div className={`space-y-4 ${className}`} {...props}>
       {children}
-    </motion.div>
+    </div>
   );
 }
 
 export function StaggerItem({
   children,
   className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <motion.div
-      variants={{
-        hidden: { opacity: 0, y: 8 },
-        visible: {
-          opacity: 1,
-          y: 0,
-          transition: { duration: 0.25, ease: [0.16, 1, 0.3, 1] },
-        },
-      }}
-      className={className}
-    >
+    <div className={`animate-in fade-in-0 duration-200 fill-mode-both ${className}`} {...props}>
       {children}
-    </motion.div>
+    </div>
   );
 }

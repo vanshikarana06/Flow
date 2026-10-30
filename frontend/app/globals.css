@@ -81,6 +81,63 @@ body {
 }
 
 
+/* Flow 3D Agent Orb Keyframes & Utilities */
+@keyframes orb-orbit-1 {
+  0% { transform: rotateX(65deg) rotateY(0deg) rotateZ(0deg); }
+  50% { transform: rotateX(75deg) rotateY(180deg) rotateZ(180deg); }
+  100% { transform: rotateX(65deg) rotateY(360deg) rotateZ(360deg); }
+}
+
+@keyframes orb-orbit-2 {
+  0% { transform: rotateX(55deg) rotateY(360deg) rotateZ(360deg); }
+  50% { transform: rotateX(45deg) rotateY(180deg) rotateZ(180deg); }
+  100% { transform: rotateX(55deg) rotateY(0deg) rotateZ(0deg); }
+}
+
+@keyframes orb-orbit-3 {
+  0% { transform: rotateX(30deg) rotateY(0deg); }
+  50% { transform: rotateX(20deg) rotateY(180deg); }
+  100% { transform: rotateX(30deg) rotateY(360deg); }
+}
+
+@keyframes orb-pulse-idle {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 8px rgba(217, 119, 54, 0.25); }
+  50% { transform: scale(1.06); box-shadow: 0 0 16px rgba(217, 119, 54, 0.45); }
+}
+
+@keyframes orb-pulse-active {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 12px rgba(217, 119, 54, 0.4); }
+  50% { transform: scale(1.15); box-shadow: 0 0 24px rgba(217, 119, 54, 0.7); }
+}
+
+.animate-orb-ring-1 {
+  animation: orb-orbit-1 14s linear infinite;
+}
+.animate-orb-ring-1-fast {
+  animation: orb-orbit-1 6s linear infinite;
+}
+
+.animate-orb-ring-2 {
+  animation: orb-orbit-2 18s linear infinite;
+}
+.animate-orb-ring-2-fast {
+  animation: orb-orbit-2 8s linear infinite;
+}
+
+.animate-orb-ring-3 {
+  animation: orb-orbit-3 22s linear infinite;
+}
+.animate-orb-ring-3-fast {
+  animation: orb-orbit-3 10s linear infinite;
+}
+
+.animate-orb-core-idle {
+  animation: orb-pulse-idle 3s ease-in-out infinite;
+}
+.animate-orb-core-active {
+  animation: orb-pulse-active 1.4s ease-in-out infinite;
+}
+
 /* Smooth Transitions & Reduced-Motion Accessibility */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
