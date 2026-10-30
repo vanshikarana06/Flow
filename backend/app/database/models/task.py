@@ -1,7 +1,7 @@
 from typing import Optional, List, TYPE_CHECKING
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Boolean, Integer, DateTime, ForeignKey, Enum as SQLEnum
+from sqlalchemy import String, Boolean, Integer, DateTime, ForeignKey, Enum as SQLEnum, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.base import Base, UUIDPrimaryKeyMixin, TimestampMixin
@@ -12,6 +12,12 @@ if TYPE_CHECKING:
 
 class Task(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "tasks"
+    __table_args__ = (
+        Index("idx_tasks_user_id", "user_id"),
+        Index("idx_tasks_status", "status"),
+        Index("idx_tasks_due_date", "due_date"),
+        Index("idx_tasks_user_status", "user_id", "status"),
+    )
 
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -29,6 +35,9 @@ class Task(Base, UUIDPrimaryKeyMixin, TimestampMixin):
 
 class Subtask(Base, UUIDPrimaryKeyMixin):
     __tablename__ = "subtasks"
+    __table_args__ = (
+        Index("idx_subtasks_task_id", "task_id"),
+    )
 
     task_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)

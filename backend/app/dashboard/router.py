@@ -16,3 +16,4 @@ async def get_dashboard_summary(
         "unread_emails_count": 0,
         "proactive_alerts": [],
     })
+

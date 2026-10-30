@@ -36,3 +36,4 @@ class EntityNotFoundException(FlowException):
             detail=f"{entity_name} with id {entity_id} not found",
             error_code="ENTITY_NOT_FOUND",
         )
+

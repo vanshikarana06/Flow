@@ -9,3 +9,4 @@ class SyncStatus(str, Enum):
     IN_SYNC = "IN_SYNC"
     PENDING_SYNC = "PENDING_SYNC"
     FAILED = "FAILED"
+

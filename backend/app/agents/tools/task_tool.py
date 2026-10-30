@@ -18,3 +18,4 @@ class TaskTool(BaseTool):
 
     async def execute(self, input_data: Dict[str, Any], user_id: uuid.UUID) -> ToolResult:
         return ToolResult(success=True, data={"status": "TASK_PROCESSED", "task": input_data})
+

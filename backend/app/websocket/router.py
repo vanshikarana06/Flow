@@ -14,3 +14,4 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
             await websocket.send_json({"type": "PONG", "payload": data})
     except WebSocketDisconnect:
         manager.disconnect(user_id, websocket)
+

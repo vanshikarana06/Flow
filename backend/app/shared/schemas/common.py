@@ -11,3 +11,4 @@ class BaseFlowModel(BaseModel):
 class TimestampedModel(BaseFlowModel):
     created_at: datetime
     updated_at: datetime
+

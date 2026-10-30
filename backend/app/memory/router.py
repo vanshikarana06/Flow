@@ -21,3 +21,4 @@ async def semantic_search(
     engine = MemoryRetrievalEngine(db)
     context = await engine.retrieve_context(user_id=current_user.id, query=request.query)
     return StandardResponse(data=context)
+

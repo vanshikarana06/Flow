@@ -30,3 +30,4 @@ class EmailTool(BaseTool):
                 },
             )
         return ToolResult(success=True, data={"status": "DRAFTED", "draft": input_data})
+

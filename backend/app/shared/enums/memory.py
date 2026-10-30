@@ -11,3 +11,4 @@ class RelationType(str, Enum):
     CLIENT = "client"
     PEER = "peer"
     FAMILY = "family"
+

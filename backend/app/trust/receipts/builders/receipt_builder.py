@@ -53,3 +53,4 @@ class ReceiptBuilder:
             timestamp=timestamp,
             evidence=self._evidence,
         )
+

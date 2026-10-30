@@ -21,3 +21,4 @@ class Contact(Base, UUIDPrimaryKeyMixin, TimestampMixin):
 
     user: Mapped["User"] = relationship("User", back_populates="contacts")
     relationships: Mapped[List["Relationship"]] = relationship("Relationship", back_populates="contact", cascade="all, delete-orphan")
+

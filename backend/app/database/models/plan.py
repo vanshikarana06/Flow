@@ -1,7 +1,7 @@
 from typing import Optional, List, Dict, Any, TYPE_CHECKING
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, DateTime, ForeignKey
+from sqlalchemy import String, DateTime, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.base import Base, UUIDPrimaryKeyMixin
@@ -12,6 +12,11 @@ if TYPE_CHECKING:
 
 class AgentPlan(Base, UUIDPrimaryKeyMixin):
     __tablename__ = "agent_plans"
+    __table_args__ = (
+        Index("idx_agent_plans_user_id", "user_id"),
+        Index("idx_agent_plans_status", "status"),
+        Index("idx_agent_plans_user_created", "user_id", "created_at"),
+    )
 
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     intent: Mapped[str] = mapped_column(String(100), nullable=False)

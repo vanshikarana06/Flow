@@ -30,3 +30,4 @@ async def get_current_user(
         )
 
     return AuthenticatedUser(id=uuid.UUID(sub), email=email)
+

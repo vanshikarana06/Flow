@@ -22,3 +22,4 @@ class UserProfileResponse(BaseModel):
     email: str
     full_name: str
     avatar_url: Optional[str] = None
+

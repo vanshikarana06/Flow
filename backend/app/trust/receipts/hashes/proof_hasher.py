@@ -7,3 +7,4 @@ class ProofHasher:
     def generate_hash(payload: Dict[str, Any]) -> str:
         serialized = json.dumps(payload, sort_keys=True, default=str)
         return f"sha256:{hashlib.sha256(serialized.encode('utf-8')).hexdigest()}"
+

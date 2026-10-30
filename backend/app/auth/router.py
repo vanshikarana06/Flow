@@ -18,3 +18,4 @@ async def get_me(
         full_name="FLOW User",
     )
     return StandardResponse(data=profile)
+

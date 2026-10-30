@@ -16,3 +16,4 @@ async def check_conflicts(
     current_user: AuthenticatedUser = Depends(get_current_user),
 ):
     return StandardResponse(data=[])
+

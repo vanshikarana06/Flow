@@ -19,3 +19,4 @@ class Relationship(Base, UUIDPrimaryKeyMixin, TimestampMixin):
 
     user: Mapped["User"] = relationship("User")
     contact: Mapped["Contact"] = relationship("Contact", back_populates="relationships")
+

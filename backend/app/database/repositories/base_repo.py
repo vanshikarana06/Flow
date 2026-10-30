@@ -29,3 +29,4 @@ class BaseRepository(Generic[ModelType]):
     async def delete(self, id: uuid.UUID) -> bool:
         result = await self.session.execute(delete(self.model).where(self.model.id == id))
         return result.rowcount > 0
+

@@ -30,3 +30,4 @@ build-backend = "setuptools.build_meta"
 asyncio_mode = "auto"
 testpaths = ["app/tests"]
 pythonpath = ["."]
+

@@ -19,3 +19,4 @@ class AuthService:
             self.db.add(pref)
             await self.db.flush()
         return user
+

@@ -62,3 +62,4 @@ class MemoryRetrievalEngine:
             "contacts": [{"name": c.name, "email": c.email, "role": c.role} for c in contacts],
             "relevant_memories": [m.content for m in semantic_memories],
         }
+

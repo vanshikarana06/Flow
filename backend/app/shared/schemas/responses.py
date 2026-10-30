@@ -15,3 +15,4 @@ class ErrorResponse(BaseModel):
     code: str
     details: Optional[Any] = None
     correlation_id: Optional[str] = None
+

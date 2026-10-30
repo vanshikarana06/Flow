@@ -17,3 +17,4 @@ class PaginatedResponse(BaseModel, Generic[T]):
     page: int
     limit: int
     pages: int
+

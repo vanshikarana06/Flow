@@ -33,3 +33,4 @@ _global_tool_registry = ToolRegistry()
 
 def get_tool_registry() -> ToolRegistry:
     return _global_tool_registry
+

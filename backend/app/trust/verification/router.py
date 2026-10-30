@@ -24,3 +24,4 @@ async def get_receipt(
         evidence={"status_code": 202, "folder": "SentItems"},
     )
     return StandardResponse(data=receipt)
+

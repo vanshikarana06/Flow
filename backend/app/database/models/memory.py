@@ -1,7 +1,7 @@
 from typing import Optional, TYPE_CHECKING
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, Float, DateTime, ForeignKey
+from sqlalchemy import String, Float, DateTime, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from pgvector.sqlalchemy import Vector
@@ -12,6 +12,11 @@ if TYPE_CHECKING:
 
 class MemoryRecord(Base, UUIDPrimaryKeyMixin):
     __tablename__ = "memory_records"
+    __table_args__ = (
+        Index("idx_memory_records_user_id", "user_id"),
+        Index("idx_memory_records_category", "category"),
+        Index("idx_memory_records_observed_at", "observed_at"),
+    )
 
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     category: Mapped[str] = mapped_column(String(50), nullable=False) # PREFERENCE, EVENT, BEHAVIORAL

@@ -56,3 +56,4 @@ async def list_available_mcp_tools(
 ):
     registry = get_tool_registry()
     return StandardResponse(data=registry.get_mcp_definitions())
+

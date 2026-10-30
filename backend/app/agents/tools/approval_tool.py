@@ -21,3 +21,4 @@ class ApprovalTool(BaseTool):
             requires_approval=True,
             approval_payload=input_data,
         )
+

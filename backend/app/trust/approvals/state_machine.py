@@ -23,3 +23,4 @@ class ApprovalStateMachine:
         if not cls.can_transition(from_state, to_state):
             raise InvalidStateTransitionException(from_state=from_state.value, to_state=to_state.value)
         return to_state
+

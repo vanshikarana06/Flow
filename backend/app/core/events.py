@@ -39,3 +39,4 @@ _event_emitter = DomainEventEmitter()
 
 def get_event_emitter() -> DomainEventEmitter:
     return _event_emitter
+

@@ -26,3 +26,4 @@ class BaseTool(ABC):
             "description": self.description,
             "inputSchema": self.parameters_schema,
         }
+

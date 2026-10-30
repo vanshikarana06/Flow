@@ -28,3 +28,4 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     approvals: Mapped[List["Approval"]] = relationship("Approval", back_populates="user", cascade="all, delete-orphan")
     agent_plans: Mapped[List["AgentPlan"]] = relationship("AgentPlan", back_populates="user", cascade="all, delete-orphan")
     activity_logs: Mapped[List["ActivityLog"]] = relationship("ActivityLog", back_populates="user", cascade="all, delete-orphan")
+

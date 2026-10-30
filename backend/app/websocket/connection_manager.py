@@ -31,3 +31,4 @@ connection_manager = ConnectionManager()
 
 def get_connection_manager() -> ConnectionManager:
     return connection_manager
+

@@ -30,3 +30,4 @@ class CalendarTool(BaseTool):
                 },
             )
         return ToolResult(success=True, data={"status": "AVAILABLE", "slots": []})
+

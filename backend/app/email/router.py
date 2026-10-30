@@ -10,3 +10,4 @@ async def list_inbox(
     current_user: AuthenticatedUser = Depends(get_current_user),
 ):
     return StandardResponse(data=[])
+

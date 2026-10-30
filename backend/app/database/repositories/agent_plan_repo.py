@@ -29,3 +29,4 @@ class AgentPlanRepository(BaseRepository[AgentPlan]):
             select(AgentPlan).where(AgentPlan.user_id == user_id).order_by(AgentPlan.created_at.desc()).limit(1)
         )
         return result.scalars().first()
+

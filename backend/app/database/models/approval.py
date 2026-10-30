@@ -1,7 +1,7 @@
 from typing import Optional, Dict, Any, TYPE_CHECKING
 import uuid
 from datetime import datetime
-from sqlalchemy import String, DateTime, ForeignKey, Enum as SQLEnum
+from sqlalchemy import String, DateTime, ForeignKey, Enum as SQLEnum, Index
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.base import Base, UUIDPrimaryKeyMixin, TimestampMixin
@@ -15,6 +15,12 @@ if TYPE_CHECKING:
 
 class Approval(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "approvals"
+    __table_args__ = (
+        Index("idx_approvals_user_id", "user_id"),
+        Index("idx_approvals_status", "status"),
+        Index("idx_approvals_user_status", "user_id", "status"),
+        Index("idx_approvals_plan_id", "plan_id"),
+    )
 
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     plan_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("agent_plans.id", ondelete="SET NULL"), nullable=True)

@@ -1,7 +1,7 @@
 from typing import Optional, Dict, Any, TYPE_CHECKING
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, Integer, DateTime, ForeignKey
+from sqlalchemy import String, Integer, DateTime, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.base import Base, UUIDPrimaryKeyMixin
@@ -12,6 +12,11 @@ if TYPE_CHECKING:
 
 class ExecutionLog(Base, UUIDPrimaryKeyMixin):
     __tablename__ = "execution_logs"
+    __table_args__ = (
+        Index("idx_execution_logs_user_id", "user_id"),
+        Index("idx_execution_logs_approval_id", "approval_id"),
+        Index("idx_execution_logs_executed_at", "executed_at"),
+    )
 
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     approval_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("approvals.id", ondelete="SET NULL"), unique=True, nullable=True)

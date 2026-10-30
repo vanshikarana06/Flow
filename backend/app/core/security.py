@@ -26,3 +26,4 @@ def decode_supabase_jwt(token: str) -> Dict[str, Any]:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid authentication token: {str(e)}",
         )
+

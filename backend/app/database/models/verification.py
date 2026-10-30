@@ -1,7 +1,7 @@
 from typing import Optional, Dict, Any, TYPE_CHECKING
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, DateTime, ForeignKey
+from sqlalchemy import String, DateTime, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.base import Base, UUIDPrimaryKeyMixin
@@ -11,6 +11,12 @@ if TYPE_CHECKING:
 
 class VerificationLog(Base, UUIDPrimaryKeyMixin):
     __tablename__ = "verification_logs"
+    __table_args__ = (
+        Index("idx_verification_logs_approval_id", "approval_id"),
+        Index("idx_verification_logs_status", "status"),
+        Index("idx_verification_logs_proof_hash", "proof_hash"),
+        Index("idx_verification_logs_verified_at", "verified_at"),
+    )
 
     approval_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("approvals.id", ondelete="CASCADE"), unique=True, nullable=False)
     status: Mapped[str] = mapped_column(String(50), nullable=False) # VERIFIED, VERIFICATION_FAILED

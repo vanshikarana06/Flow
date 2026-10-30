@@ -11,3 +11,4 @@ async def list_tasks(
     current_user: AuthenticatedUser = Depends(get_current_user),
 ):
     return StandardResponse(data=[])
+

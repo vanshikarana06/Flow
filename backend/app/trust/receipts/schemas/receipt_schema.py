@@ -11,3 +11,4 @@ class ExecutionReceipt(BaseModel):
     proof_hash: str
     timestamp: datetime
     evidence: Dict[str, Any] = Field(default_factory=dict)
+

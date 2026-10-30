@@ -19,3 +19,4 @@ class Preference(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     communication_tone: Mapped[str] = mapped_column(String(50), default="friendly_formal", nullable=False)
 
     user: Mapped["User"] = relationship("User", back_populates="preference")
+

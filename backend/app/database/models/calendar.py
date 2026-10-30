@@ -1,7 +1,7 @@
 from typing import Optional, TYPE_CHECKING
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, Enum as SQLEnum
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, Enum as SQLEnum, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.base import Base, UUIDPrimaryKeyMixin, TimestampMixin
@@ -12,6 +12,12 @@ if TYPE_CHECKING:
 
 class CalendarEvent(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "calendar_events"
+    __table_args__ = (
+        Index("idx_calendar_events_user_id", "user_id"),
+        Index("idx_calendar_events_time_range", "start_time", "end_time"),
+        Index("idx_calendar_events_user_time", "user_id", "start_time", "end_time"),
+        Index("idx_calendar_events_external_id", "external_event_id"),
+    )
 
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
