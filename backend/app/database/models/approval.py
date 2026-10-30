@@ -24,11 +24,11 @@ class Approval(Base, UUIDPrimaryKeyMixin, TimestampMixin):
 
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     plan_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("agent_plans.id", ondelete="SET NULL"), nullable=True)
-    action_type: Mapped[ActionType] = mapped_column(SQLEnum(ActionType), nullable=False)
+    action_type: Mapped[ActionType] = mapped_column(SQLEnum(ActionType, native_enum=False), nullable=False)
     target_service: Mapped[str] = mapped_column(String(50), nullable=False)
     proposed_payload: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False)
     modified_payload: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB, nullable=True)
-    status: Mapped[ApprovalState] = mapped_column(SQLEnum(ApprovalState), default=ApprovalState.PENDING, nullable=False)
+    status: Mapped[ApprovalState] = mapped_column(SQLEnum(ApprovalState, native_enum=False), default=ApprovalState.PENDING, nullable=False)
     idempotency_key: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 

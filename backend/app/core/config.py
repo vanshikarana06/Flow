@@ -58,6 +58,7 @@ class Settings(BaseSettings):
     # Outbound Email (Google Apps Script Webhook)
     APPSCRIPT_WEBHOOK_URL: str = "https://script.google.com/macros/s/default/exec"
     APPSCRIPT_SECRET_KEY: str = "appscript_secret_default"
+    APPSCRIPT_SHARED_SECRET: str = ""
 
     # Local AI
     LITELLM_BASE_URL: str = "http://localhost:4000"

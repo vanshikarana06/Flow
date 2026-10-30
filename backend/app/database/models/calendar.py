@@ -25,8 +25,8 @@ class CalendarEvent(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     start_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     end_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     is_focus_block: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    external_provider: Mapped[CalendarProvider] = mapped_column(SQLEnum(CalendarProvider), default=CalendarProvider.FLOW_NATIVE, nullable=False)
+    external_provider: Mapped[CalendarProvider] = mapped_column(SQLEnum(CalendarProvider, native_enum=False), default=CalendarProvider.FLOW_NATIVE, nullable=False)
     external_event_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    sync_status: Mapped[SyncStatus] = mapped_column(SQLEnum(SyncStatus), default=SyncStatus.IN_SYNC, nullable=False)
+    sync_status: Mapped[SyncStatus] = mapped_column(SQLEnum(SyncStatus, native_enum=False), default=SyncStatus.IN_SYNC, nullable=False)
 
     user: Mapped["User"] = relationship("User", back_populates="calendar_events")

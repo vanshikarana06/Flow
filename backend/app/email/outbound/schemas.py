@@ -1,5 +1,5 @@
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 class OutboundEmailRequest(BaseModel):
     idempotency_key: str
@@ -12,12 +12,14 @@ class OutboundEmailRequest(BaseModel):
     thread_id: Optional[str] = None
 
 class AppsScriptDeliveryResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
     success: bool
-    flow_idempotency_key: str
-    gmail_message_id: Optional[str] = None
-    gmail_thread_id: Optional[str] = None
+    flow_idempotency_key: Optional[str] = Field(None, alias="idempotency_key")
+    gmail_message_id: Optional[str] = Field(None, alias="message_id")
+    gmail_thread_id: Optional[str] = Field(None, alias="thread_id")
     rfc822_message_id: Optional[str] = None
-    timestamp: str
+    timestamp: Optional[str] = None
     recipient_count: int = 1
     script_execution_duration_ms: Optional[int] = None
     error: Optional[str] = None
