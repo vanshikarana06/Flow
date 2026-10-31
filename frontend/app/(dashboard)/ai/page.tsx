@@ -9,15 +9,23 @@ import {
   ShieldCheck, 
   Bot, 
   Terminal, 
-  Paperclip,
-  ArrowUp,
-  Shield,
-  ChevronDown,
-  ChevronUp,
-  Cpu
+  Paperclip, 
+  ArrowUp, 
+  Shield, 
+  ChevronDown, 
+  ChevronUp, 
+  Cpu, 
+  Copy, 
+  Check, 
+  Code2, 
+  CornerDownRight, 
+  ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Flow3DCore } from "@/components/ui/flow-3d-core";
+import { FadeIn } from "@/components/ui/motion-primitives";
+import { VercelV0Chat } from "@/components/ui/v0-ai-chat";
 import { useCopilotStore } from "@/stores/use-copilot-store";
 import { useApprovalStore } from "@/stores/use-approval-store";
 
@@ -27,8 +35,9 @@ export default function AiStudioPage() {
   
   const [inputVal, setInputVal] = useState("");
   const [showReasoning, setShowReasoning] = useState(true);
+  const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const pendingApprovals = approvals.filter((a) => a.status === "pending");
 
@@ -37,86 +46,66 @@ export default function AiStudioPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isGenerating, activePlan]);
 
-  // Handle textarea auto-resizing
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputVal(e.target.value);
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 140)}px`;
-    }
+  const handleCopy = (id: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
+  const handleChatSubmit = (prompt: string, model?: string, attachments?: string[]) => {
+    if (!prompt.trim() || isGenerating) return;
+    submitPrompt(prompt);
   };
-
-  const handleSubmit = () => {
-    if (!inputVal.trim() || isGenerating) return;
-    submitPrompt(inputVal);
-    setInputVal("");
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-    }
-  };
-
-  const promptChips = [
-    "Reschedule sync with Aditya to 4:00 PM",
-    "Draft reply regarding pgvector database migration",
-    "Audit today's calendar collisions",
-    "Decompose Hackathon Release into subtasks",
-  ];
 
   return (
     <div className="flex flex-col h-[calc(100vh-6.5rem)] rounded-xl border border-[#E8DFD1] bg-[#FFFCF6] shadow-soft overflow-hidden">
       {/* 1. Studio Header Bar */}
-      <div className="flex h-12 items-center justify-between px-4 border-b border-[#E8DFD1] bg-[#FFFCF6] shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#FCEEE5] text-[#D97736] border border-[#F7D2BC]">
-            <Bot size={14} />
+      <div className="flex h-14 items-center justify-between px-5 border-b border-[#E8DFD1] bg-[#FFFCF6] shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FCEEE5] text-primary border border-[#F7D2BC] shadow-2xs">
+            <Bot size={16} />
           </div>
           <div>
-            <h2 className="text-xs font-semibold text-[#29251F]">FLOW Conversational Agent</h2>
+            <h1 className="text-sm sm:text-base font-bold tracking-tight text-[#29251F]">FLOW AI Workspace</h1>
+            <p className="text-[11px] text-[#777064]">Autonomous workspace reasoning & multi-step execution</p>
           </div>
-          <Badge variant="outline" className="hidden sm:inline-flex text-[9px] text-[#777064] border-[#E8DFD1]">
-            Graph & Email Orchestrator
-          </Badge>
         </div>
 
-        <div className="flex items-center gap-3 text-[11px] text-[#777064]">
-          <span className="flex items-center gap-1 font-mono text-[#477A58]">
+        <div className="flex items-center gap-2.5 text-xs text-[#777064]">
+          <span className="inline-flex items-center gap-1.5 font-mono text-[#477A58] bg-[#EBF3ED] px-2.5 py-1 rounded-md border border-[#D1E3D7] text-[11px]">
             <Shield size={12} /> HITL Guardrails Active
           </span>
           {pendingApprovals.length > 0 && (
-            <Badge variant="warning" className="text-[9px] font-mono">
+            <Badge variant="warning" className="text-[10px] font-mono px-2 py-0.5">
               {pendingApprovals.length} Staged Approvals
             </Badge>
           )}
         </div>
       </div>
 
-      {/* 2. Vertically Scrolling Conversation Canvas (Independent Scroll Container) */}
+      {/* 2. Vertically Scrolling Conversation Canvas */}
       <div className="flex-1 overflow-y-auto px-4 md:px-6 py-6 space-y-6">
         <div className="max-w-3xl mx-auto space-y-6">
-          {/* Manifesto & Trust Notice */}
-          <div className="rounded-xl border border-[#E8DFD1] bg-[#F8F4EC]/60 p-4 space-y-2 text-xs">
-            <div className="flex items-center gap-2 font-semibold text-[#29251F]">
-              <Sparkles size={14} className="text-[#D97736]" />
-              <span>Trust-First Agentic Interaction</span>
-            </div>
-            <p className="text-[#777064] leading-relaxed">
-              FLOW interprets natural language requests, inspects connected workspace context across Google Workspace and Microsoft Graph, constructs verifiable execution plans, and strictly halts for your explicit approval before mutating external data.
-            </p>
-          </div>
+          {messages.length === 0 && (
+            <FadeIn className="text-center py-8 space-y-4">
+              <div className="flex justify-center mb-2">
+                <Flow3DCore size={120} intensity={isGenerating ? 1.4 : 1.0} interactive={true} />
+              </div>
+              <div className="space-y-1.5">
+                <h2 className="text-xl font-bold tracking-tight text-[#29251F]">How can FLOW assist you today?</h2>
+                <p className="text-xs text-[#777064] max-w-md mx-auto leading-relaxed">
+                  FLOW coordinates calendar schedules, drafts high-context emails, audits tasks, and organizes your workspace under strict human oversight.
+                </p>
+              </div>
+            </FadeIn>
+          )}
 
           {/* Cursor-Style Active Plan Execution DAG */}
           {activePlan && (
             <div className="rounded-xl border border-[#E8DFD1] bg-[#FFFCF6] p-4 space-y-3 shadow-2xs">
               <div className="flex items-center justify-between border-b border-[#E8DFD1] pb-2 text-xs">
                 <span className="font-semibold text-[#29251F] flex items-center gap-1.5">
-                  <Terminal size={14} className="text-[#D97736]" /> Plan: {activePlan.goal}
+                  <Terminal size={14} className="text-primary" /> Plan: {activePlan.goal}
                 </span>
                 <button
                   onClick={() => setShowReasoning(!showReasoning)}
@@ -128,63 +117,82 @@ export default function AiStudioPage() {
               </div>
 
               {showReasoning && (
-                <div className="space-y-1.5">
-                  {activePlan.steps.map((step) => (
-                    <div
-                      key={step.id}
-                      className={`flex items-start justify-between p-2.5 rounded-lg border text-xs transition-all ${
-                        step.status === "completed"
-                          ? "bg-[#F1EADF]/30 border-[#E8DFD1] text-[#777064]"
-                          : step.status === "waiting_approval"
-                          ? "bg-[#FEF8ED] border-[#F9E2BE] text-[#C58A32]"
-                          : "bg-transparent border-dashed border-[#D0C4B2] text-[#A39B8E]"
-                      }`}
-                    >
-                      <div className="flex items-start gap-2">
-                        <div className="mt-0.5">
-                          {step.status === "completed" ? (
-                            <CheckCircle2 size={14} className="text-[#477A58]" />
-                          ) : step.status === "waiting_approval" ? (
-                            <Clock size={14} className="text-[#C58A32] animate-pulse" />
-                          ) : (
-                            <div className="h-3 w-3 rounded-full border border-[#D0C4B2]" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-medium text-[#29251F]">{step.description}</p>
-                          <p className="text-[10px] text-[#777064] font-mono mt-0.5">
-                            Tool: <span className="text-[#D97736]">{step.tool}</span>
-                          </p>
-                        </div>
-                      </div>
+                <div className="space-y-2">
+                  {activePlan.steps.map((step) => {
+                    const isSelected = selectedStepId === step.id;
+                    return (
+                      <div
+                        key={step.id}
+                        className={`rounded-lg border text-xs transition-all cursor-pointer ${
+                          step.status === "completed"
+                            ? "bg-[#F1EADF]/30 border-[#E8DFD1] text-[#777064] hover:border-[#D0C4B2]"
+                            : step.status === "waiting_approval"
+                            ? "bg-[#FEF8ED] border-[#F9E2BE] text-[#C58A32]"
+                            : "bg-transparent border-dashed border-[#D0C4B2] text-[#A39B8E]"
+                        }`}
+                        onClick={() => setSelectedStepId(isSelected ? null : step.id)}
+                      >
+                        <div className="flex items-start justify-between p-2.5">
+                          <div className="flex items-start gap-2">
+                            <div className="mt-0.5">
+                              {step.status === "completed" ? (
+                                <CheckCircle2 size={14} className="text-[#477A58]" />
+                              ) : step.status === "waiting_approval" ? (
+                                <Clock size={14} className="text-[#C58A32] animate-pulse" />
+                              ) : (
+                                <div className="h-3 w-3 rounded-full border border-[#D0C4B2]" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-medium text-[#29251F]">{step.description}</p>
+                              <p className="text-[10px] text-[#777064] font-mono mt-0.5">
+                                Tool: <span className="text-primary">{step.tool}</span>
+                              </p>
+                            </div>
+                          </div>
 
-                      <div className="text-right">
-                        <Badge
-                          variant={
-                            step.status === "completed"
-                              ? "success"
-                              : step.status === "waiting_approval"
-                              ? "warning"
-                              : "secondary"
-                          }
-                          className="text-[9px] uppercase font-mono"
-                        >
-                          {step.status.replace("_", " ")}
-                        </Badge>
-                        {step.output && (
-                          <p className="text-[10px] text-[#777064] font-mono mt-1">
-                            ↳ {step.output}
-                          </p>
+                          <div className="text-right">
+                            <Badge
+                              variant={
+                                step.status === "completed"
+                                  ? "success"
+                                  : step.status === "waiting_approval"
+                                  ? "warning"
+                                  : "secondary"
+                              }
+                              className="text-[9px] uppercase font-mono"
+                            >
+                              {step.status.replace("_", " ")}
+                            </Badge>
+                            {step.output && (
+                              <p className="text-[10px] text-[#777064] font-mono mt-1">
+                                ↳ {step.output}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Expandable Step Payload Details */}
+                        {isSelected && (
+                          <div className="px-3 pb-3 pt-1 border-t border-[#E8DFD1]/60 text-[11px] font-mono space-y-1 bg-white/50 rounded-b-lg">
+                            <div className="flex items-center justify-between text-[#777064]">
+                              <span>Payload & State Details</span>
+                              <span className="text-[10px]">Latency: 124ms</span>
+                            </div>
+                            <div className="p-2 rounded bg-[#F8F4EC] border border-[#E8DFD1] text-[#29251F] overflow-x-auto">
+                              <code>{JSON.stringify({ step: step.id, tool: step.tool, idempotency: `#idemp_${step.id}_exec` }, null, 2)}</code>
+                            </div>
+                          </div>
                         )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
               {/* In-Chat Decision Gate Card (Consequential Action Safeguard) */}
               {pendingApprovals.length > 0 && (
-                <div className="mt-3 p-3.5 rounded-lg border border-[#F9E2BE] bg-[#FEF8ED] flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div className="mt-3 p-3.5 rounded-lg border border-[#F9E2BE] bg-[#FEF8ED] flex flex-wrap items-center justify-between gap-3 text-xs shadow-2xs">
                   <div>
                     <span className="font-semibold text-[#C58A32] flex items-center gap-1.5">
                       <ShieldCheck size={14} /> Explicit Human Approval Required ({pendingApprovals[0].id})
@@ -220,37 +228,46 @@ export default function AiStudioPage() {
           {messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex gap-3 text-xs ${
+              className={`flex gap-3 text-xs group ${
                 msg.sender === "user" ? "justify-end" : "justify-start"
               }`}
             >
               {msg.sender === "flow" && (
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#FCEEE5] text-[#D97736] border border-[#F7D2BC] font-bold text-xs mt-0.5 shadow-2xs">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#FCEEE5] text-primary border border-[#F7D2BC] font-bold text-xs mt-0.5 shadow-2xs">
                   F
                 </div>
               )}
 
               <div
-                className={`rounded-2xl p-4 max-w-xl leading-relaxed text-xs shadow-2xs ${
+                className={`relative rounded-2xl p-4 max-w-xl leading-relaxed text-xs shadow-2xs ${
                   msg.sender === "user"
                     ? "bg-[#FCEEE5] border border-[#F7D2BC] text-[#29251F] rounded-br-none"
                     : "bg-[#FFFCF6] border border-[#E8DFD1] text-[#29251F] rounded-bl-none"
                 }`}
               >
                 <p className="whitespace-pre-line leading-relaxed">{msg.text}</p>
-                <div
-                  className="mt-1.5 text-[9px] font-mono text-right text-[#777064]"
-                >
-                  {msg.timestamp}
+                <div className="mt-2 pt-1 border-t border-[#E8DFD1]/40 flex items-center justify-between text-[9px] font-mono text-[#777064]">
+                  <span>{msg.timestamp}</span>
+                  <button
+                    onClick={() => handleCopy(msg.id, msg.text)}
+                    className="p-1 hover:text-[#29251F] flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Copy response"
+                  >
+                    {copiedId === msg.id ? <Check size={11} className="text-[#477A58]" /> : <Copy size={11} />}
+                    <span>{copiedId === msg.id ? "Copied" : "Copy"}</span>
+                  </button>
                 </div>
               </div>
             </div>
           ))}
 
           {isGenerating && (
-            <div className="flex items-center gap-2 text-xs text-[#D97736] animate-pulse py-2">
-              <Sparkles size={14} />
-              <span>Querying Microsoft Graph and staging multi-step execution plan...</span>
+            <div className="flex items-center gap-3.5 p-3.5 rounded-xl border border-[#F7D2BC] bg-[#FCEEE5]/60 text-xs shadow-2xs">
+              <Flow3DCore size={36} intensity={1.5} interactive={false} />
+              <div className="space-y-0.5">
+                <p className="font-semibold text-[#29251F]">Querying Microsoft Graph & Staging Plan...</p>
+                <p className="text-[11px] text-[#777064]">Evaluating constraints and calculating optimal scheduling parameters.</p>
+              </div>
             </div>
           )}
 
@@ -258,59 +275,16 @@ export default function AiStudioPage() {
         </div>
       </div>
 
-      {/* 3. Sticky ChatGPT-Style Bottom Composer (Anchored to Chat Container) */}
+      {/* 3. Sticky Bottom Composer (Integrated Vercel v0 AI Chat Component) */}
       <div className="border-t border-[#E8DFD1] bg-[#FFFCF6] p-3.5 md:p-4 shrink-0">
-        <div className="max-w-3xl mx-auto space-y-2.5">
-          {/* Quick Prompt Suggestion Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] scrollbar-none">
-            {promptChips.map((chip, idx) => (
-              <button
-                key={idx}
-                onClick={() => submitPrompt(chip)}
-                className="whitespace-nowrap px-2.5 py-1 rounded-full bg-[#F1EADF] hover:bg-[#E5DCCE] text-[#777064] hover:text-[#29251F] border border-[#E8DFD1] transition-colors"
-              >
-                {chip}
-              </button>
-            ))}
-          </div>
-
-          {/* Multiline Textarea Composer Container */}
-          <div className="relative rounded-xl border border-[#E8DFD1] bg-[#FFFCF6] shadow-card focus-within:border-[#D97736] focus-within:ring-2 focus-within:ring-[#D97736]/20 transition-all p-2.5">
-            <textarea
-              ref={textareaRef}
-              rows={1}
-              value={inputVal}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask FLOW to schedule, draft an email, or coordinate tasks..."
-              className="w-full bg-transparent text-xs text-[#29251F] placeholder:text-[#A39B8E] focus:outline-none resize-none leading-relaxed min-h-[36px] max-h-[140px] px-1"
-            />
-
-            <div className="flex items-center justify-between pt-1.5 border-t border-[#E8DFD1]/50 text-[11px] text-[#777064]">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="p-1 rounded-md text-[#777064] hover:text-[#29251F] hover:bg-[#F1EADF] transition-colors"
-                  title="Attach Context from Calendar, Email, or Tasks"
-                >
-                  <Paperclip size={14} />
-                </button>
-                <span className="hidden sm:inline text-[10px]">
-                  Press <kbd className="font-mono bg-[#F1EADF] px-1 py-0.5 rounded border border-[#E8DFD1]">Enter ↵</kbd> to send, <kbd className="font-mono bg-[#F1EADF] px-1 py-0.5 rounded border border-[#E8DFD1]">Shift+Enter</kbd> for newline
-                </span>
-              </div>
-
-              {/* Orange Send Button */}
-              <button
-                onClick={handleSubmit}
-                disabled={!inputVal.trim() || isGenerating}
-                className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#D97736] hover:bg-[#B95727] disabled:opacity-40 text-white shadow-2xs transition-all active:scale-95"
-                title="Send Instruction"
-              >
-                <ArrowUp size={14} />
-              </button>
-            </div>
-          </div>
+        <div className="max-w-3xl mx-auto">
+          <VercelV0Chat
+            value={inputVal}
+            onChange={setInputVal}
+            onSubmit={handleChatSubmit}
+            isGenerating={isGenerating}
+            placeholder="Ask FLOW to schedule, draft an email, or coordinate tasks..."
+          />
         </div>
       </div>
     </div>

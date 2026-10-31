@@ -8,10 +8,13 @@ import {
   CheckSquare, 
   Calendar as CalendarIcon, 
   ShieldCheck, 
-  User,
-  Clock,
-  Mail,
-  ChevronRight
+  User, 
+  Clock, 
+  Mail, 
+  ChevronRight,
+  Reply,
+  CheckCircle2,
+  Paperclip
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,20 +23,52 @@ import { mockThreads } from "@/lib/mock-data";
 import { EmailThread } from "@/lib/types";
 import { useCopilotStore } from "@/stores/use-copilot-store";
 import { useApprovalStore } from "@/stores/use-approval-store";
+import { triggerConfetti } from "@/lib/confetti";
 
 export default function InboxPage() {
   const [selectedThread, setSelectedThread] = useState<EmailThread>(mockThreads[0]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<"all" | "priority" | "drafts">("all");
+  const [replyText, setReplyText] = useState("");
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
   const { toggleOpen, submitPrompt } = useCopilotStore();
   const { approveAction } = useApprovalStore();
 
-  const filteredThreads = mockThreads.filter((t) =>
-    t.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.sender.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredThreads = mockThreads.filter((t) => {
+    const matchesSearch = t.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.sender.name.toLowerCase().includes(searchQuery.toLowerCase());
+    if (activeFilter === "priority") return matchesSearch && t.priority === "urgent";
+    if (activeFilter === "drafts") return matchesSearch && t.messages.some(m => m.isStagedDraft);
+    return matchesSearch;
+  });
+
+  const handleApproveSend = () => {
+    approveAction("appr_102");
+    setToastMessage("Architecture RFC Reply Approved & Dispatched via Resend Gateway.");
+    triggerConfetti({ particleCount: 35, spread: 60, origin: { y: 0.6 } });
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleSendReply = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replyText.trim()) return;
+
+    setToastMessage(`Draft staged for approval: "${replyText.slice(0, 30)}..."`);
+    setReplyText("");
+    setTimeout(() => setToastMessage(null), 3500);
+  };
 
   return (
     <div className="h-[calc(100vh-6.5rem)] flex flex-col rounded-xl border border-[#E8DFD1] bg-[#FFFCF6] shadow-soft overflow-hidden">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 p-3 rounded-xl border border-[#CDE3D5] bg-[#EDF5F0] text-[#477A58] text-xs font-semibold shadow-elevated animate-in slide-in-from-bottom duration-200">
+          <CheckCircle2 size={16} />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* 3-Pane Fluid Layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Pane 1: Left Threads List */}
@@ -50,15 +85,30 @@ export default function InboxPage() {
               />
             </div>
             <div className="flex items-center gap-1.5 overflow-x-auto text-[11px] text-[#777064]">
-              <Badge variant="default" className="text-[10px] cursor-pointer">
-                All (3)
-              </Badge>
-              <Badge variant="outline" className="text-[10px] cursor-pointer hover:bg-[#F1EADF]">
+              <button
+                onClick={() => setActiveFilter("all")}
+                className={`px-2.5 py-0.5 rounded-md text-[11px] font-medium transition-all ${
+                  activeFilter === "all" ? "bg-primary text-white shadow-2xs font-semibold" : "bg-[#FFFCF6] border border-[#E8DFD1] text-[#777064]"
+                }`}
+              >
+                All ({mockThreads.length})
+              </button>
+              <button
+                onClick={() => setActiveFilter("priority")}
+                className={`px-2.5 py-0.5 rounded-md text-[11px] font-medium transition-all ${
+                  activeFilter === "priority" ? "bg-primary text-white shadow-2xs font-semibold" : "bg-[#FFFCF6] border border-[#E8DFD1] text-[#777064]"
+                }`}
+              >
                 Priority
-              </Badge>
-              <Badge variant="outline" className="text-[10px] cursor-pointer hover:bg-[#F1EADF]">
+              </button>
+              <button
+                onClick={() => setActiveFilter("drafts")}
+                className={`px-2.5 py-0.5 rounded-md text-[11px] font-medium transition-all ${
+                  activeFilter === "drafts" ? "bg-primary text-white shadow-2xs font-semibold" : "bg-[#FFFCF6] border border-[#E8DFD1] text-[#777064]"
+                }`}
+              >
                 Drafts (1)
-              </Badge>
+              </button>
             </div>
           </div>
 
@@ -77,7 +127,7 @@ export default function InboxPage() {
                   }`}
                 >
                   <div className="flex items-center justify-between text-xs mb-1">
-                    <span className={`font-semibold ${isSelected ? "text-[#B95727]" : "text-[#29251F]"}`}>
+                    <span className={`font-semibold ${isSelected ? "text-primary" : "text-[#29251F]"}`}>
                       {thread.sender.name}
                     </span>
                     <span className="text-[10px] text-[#777064] font-mono">
@@ -110,7 +160,7 @@ export default function InboxPage() {
           {/* Thread Header */}
           <div className="p-3.5 border-b border-[#E8DFD1] flex items-center justify-between bg-[#FFFCF6]">
             <div>
-              <h2 className="text-xs font-semibold text-[#29251F]">{selectedThread.subject}</h2>
+              <h2 className="text-sm sm:text-base font-bold text-[#29251F] leading-snug">{selectedThread.subject}</h2>
               <p className="text-[11px] text-[#777064] mt-0.5">
                 From: <span className="text-[#29251F] font-medium">{selectedThread.sender.name}</span> ({selectedThread.sender.email})
               </p>
@@ -167,7 +217,7 @@ export default function InboxPage() {
                         size="sm"
                         variant="success"
                         className="h-6 text-[11px] font-semibold gap-1"
-                        onClick={() => approveAction("appr_102")}
+                        onClick={handleApproveSend}
                       >
                         <Send size={11} />
                         <span>Approve & Send</span>
@@ -178,12 +228,31 @@ export default function InboxPage() {
               </div>
             ))}
           </div>
+
+          {/* Inline Reply Composer */}
+          <form onSubmit={handleSendReply} className="p-3 border-t border-[#E8DFD1] bg-[#FFFCF6] flex items-center gap-2">
+            <input
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder={`Reply to ${selectedThread.sender.name}...`}
+              className="flex-1 h-9 px-3 rounded-lg border border-[#E8DFD1] bg-[#F8F4EC] text-xs text-[#29251F] placeholder:text-[#A39B8E] focus:outline-none focus:border-primary"
+            />
+            <Button
+              type="submit"
+              disabled={!replyText.trim()}
+              size="sm"
+              className="h-9 px-3 text-xs bg-primary hover:bg-primary-hover text-white gap-1"
+            >
+              <Send size={12} />
+              <span>Send</span>
+            </Button>
+          </form>
         </div>
 
         {/* Pane 3: Right AI Context Panel */}
         <div className="hidden xl:flex w-76 flex-col bg-[#F8F4EC]/60 p-4 space-y-3.5 overflow-y-auto shrink-0">
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#29251F] border-b border-[#E8DFD1] pb-2">
-            <Sparkles size={14} className="text-primary" />
+          <div className="flex items-center gap-2 text-sm font-semibold text-[#29251F] border-b border-[#E8DFD1] pb-2">
+            <Sparkles size={15} className="text-primary" />
             <span>Thread Intelligence</span>
           </div>
 
@@ -223,7 +292,7 @@ export default function InboxPage() {
             <Button
               size="sm"
               variant="outline"
-              className="w-full h-7 text-[11px] justify-start gap-1.5 bg-[#FFFCF6]"
+              className="w-full h-7 text-[11px] justify-start gap-1.5 bg-[#FFFCF6] hover:bg-[#F1EADF]"
               onClick={() => {
                 toggleOpen();
                 submitPrompt("Create task to test database migrations before 3 PM");

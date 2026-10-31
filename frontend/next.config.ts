@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  transpilePackages: ["framer-motion", "@xyflow/react", "three"],
   images: {
     remotePatterns: [
       {
@@ -13,4 +14,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-

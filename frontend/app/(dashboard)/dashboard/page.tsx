@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { 
   CheckSquare, 
@@ -9,80 +9,184 @@ import {
   Mail, 
   Sparkles, 
   Clock, 
-  ArrowUpRight, 
-  AlertTriangle,
-  History,
-  Zap,
+  AlertTriangle, 
+  ArrowRight,
+  ShieldCheck,
+  Terminal,
+  Paperclip,
+  ArrowUp,
   CheckCircle2,
   ChevronRight,
-  ShieldCheck,
-  Cpu,
-  ArrowRight
+  History,
+  Eye,
+  Check,
+  X,
+  Users,
+  MapPin,
+  CalendarCheck
 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { mockCalendarEvents, mockLedger, mockApprovals, mockTasks, mockAgents } from "@/lib/mock-data";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Flow3DCore } from "@/components/ui/flow-3d-core";
+import { NumberTicker } from "@/components/ui/number-ticker";
+import { FadeIn, StaggerContainer, StaggerItem } from "@/components/ui/motion-primitives";
+import { BorderBeam } from "@/components/ui/border-beam";
+import { ShimmerButton } from "@/components/ui/shimmer-button";
+import { PromptInput } from "@/components/ui/prompt-input";
+import { mockCalendarEvents, mockLedger, mockApprovals, mockInitialPlan } from "@/lib/mock-data";
 import { useCopilotStore } from "@/stores/use-copilot-store";
 import { useApprovalStore } from "@/stores/use-approval-store";
 
+interface AgendaEvent {
+  time: string;
+  title: string;
+  type: "meeting" | "focus" | "conflict" | "proposed";
+  badge: string;
+  badgeVariant: "verified" | "outline" | "destructive" | "warning";
+  attendees?: string;
+  details?: string;
+}
+
 export default function DashboardPage() {
-  const { toggleOpen, submitPrompt } = useCopilotStore();
-  const { approvals } = useApprovalStore();
+  const { submitPrompt, isGenerating } = useCopilotStore();
+  const { approvals, approveAction, rejectAction } = useApprovalStore();
+
+  const [cockpitInput, setCockpitInput] = useState("");
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [showConflictModal, setShowConflictModal] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<AgendaEvent | null>(null);
 
   const pendingApprovals = approvals.filter((a) => a.status === "pending");
 
+  const handleCockpitSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!cockpitInput.trim() || isGenerating) return;
+    submitPrompt(cockpitInput);
+    setCockpitInput("");
+  };
+
+  const quickPrompts = [
+    { label: "Auto-Resolve 2:00 PM Conflict", prompt: "Auto-resolve my 2:00 PM conflict by moving Aditya to 4:00 PM and drafting confirmation" },
+    { label: "Draft pgvector Migration Reply", prompt: "Draft reply to Aditya confirming pgvector database migration models before 3 PM" },
+    { label: "Decompose Project Goal", prompt: "Decompose high-level goal 'Launch FLOW Hackathon Release' into subtasks with time estimates" },
+  ];
+
+  const agendaEvents: AgendaEvent[] = [
+    {
+      time: "09:00 AM",
+      title: "Team Standup & Daily Alignment",
+      type: "meeting",
+      badge: "Completed ✓",
+      badgeVariant: "verified",
+      attendees: "Aditya Sharma, Nikhil Bhardwaj, Vanshika Rana",
+      details: "Morning synchronisation on database migrations and auth PKCE RFC approval.",
+    },
+    {
+      time: "10:00 AM",
+      title: "Deep Work: Frontend Architecture",
+      type: "focus",
+      badge: "Focus Block",
+      badgeVariant: "outline",
+      details: "2 hours uninterrupted design system refinement. Slack and email notifications muted.",
+    },
+    {
+      time: "02:00 PM",
+      title: "Sprint Demo Review (Partner Collision)",
+      type: "conflict",
+      badge: "Conflict ⚠️",
+      badgeVariant: "destructive",
+      attendees: "Executive Stakeholders, Aditya Sharma",
+      details: "Overlaps with 1:1 Aditya Review. Candidate non-conflicting slot at 04:00 PM staged for sign-off.",
+    },
+    {
+      time: "03:00 PM",
+      title: "Deep Work: Database Vector Migrations",
+      type: "focus",
+      badge: "Focus Block",
+      badgeVariant: "outline",
+      details: "Protected slot for Supabase pgvector schema verification and embeddings indexing.",
+    },
+    {
+      time: "04:00 PM",
+      title: "1:1 Aditya Review (Proposed Reschedule Slot)",
+      type: "proposed",
+      badge: "Awaiting Sign-off",
+      badgeVariant: "warning",
+      attendees: "Aditya Sharma, Vanshika Rana",
+      details: "Zero-collision score slot. Idempotency key #idemp_ev_9921_mod staged in Approval Center.",
+    },
+  ];
+
   return (
-    <div className="space-y-5">
-      {/* 1. Executive Greeting & Operational Status */}
+    <FadeIn className="space-y-6 max-w-6xl mx-auto">
+      {/* 1. Header Greeting & Status Overview */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-[#E8DFD1]">
         <div>
-          <h2 className="text-xl md:text-2xl font-bold tracking-tight text-[#29251F]">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#29251F]">
             Good morning, Vanshika 👋
-          </h2>
-          <p className="text-xs text-[#777064] mt-0.5">
-            Today is Friday, Oct 31 • <span className="text-[#C58A32] font-semibold">{pendingApprovals.length} decisions pending approval</span> and 1 scheduling conflict require attention.
+          </h1>
+          <p className="text-xs sm:text-sm text-[#777064] mt-1 flex items-center gap-1.5 flex-wrap">
+            <span>Friday, Oct 31 •</span>
+            <span className="text-[#C58A32] font-semibold flex items-center gap-1">
+              <NumberTicker value={pendingApprovals.length} /> decisions awaiting your authorization
+            </span>
+            <span>• 1 scheduling collision flagged.</span>
           </p>
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setShowPlanModal(true)}
+            size="sm"
+            variant="outline"
+            className="text-xs font-semibold gap-1.5 border-[#E8DFD1] hover:bg-[#F1EADF] text-[#29251F]"
+          >
+            <Eye size={13} className="text-[#D97736]" />
+            <span>Inspect Active Plan</span>
+          </Button>
+
           <Link href="/approvals">
-            <Button size="sm" variant="default" className="text-xs font-semibold gap-1.5 bg-[#D97736] hover:bg-[#B95727] text-white">
-              <ShieldAlert size={13} />
-              <span>Review Approvals ({pendingApprovals.length})</span>
-            </Button>
-          </Link>
-          <Link href="/ai">
-            <Button
-              variant="secondary"
-              size="sm"
-              className="gap-1.5 text-xs font-semibold text-[#29251F] bg-[#F1EADF] hover:bg-[#E8DFD1] border border-[#E8DFD1]"
+            <ShimmerButton
+              shimmerColor="rgba(255, 255, 255, 0.45)"
+              background="#D97736"
+              className="h-8 gap-1.5 px-3"
             >
-              <Sparkles size={13} className="text-[#D97736]" />
-              <span>Open AI Workspace</span>
-            </Button>
+              <ShieldAlert size={13} />
+              <span>Review Decisions (<NumberTicker value={pendingApprovals.length} />)</span>
+            </ShimmerButton>
           </Link>
         </div>
       </div>
 
-      {/* 2. Motion-Inspired Action Priority Focal Banner */}
+      {/* 2. Priority Action Required Banner (With Magic UI BorderBeam) */}
       {pendingApprovals.length > 0 && (
-        <div className="rounded-xl border border-[#F9E2BE] bg-[#FEF8ED] p-4 flex flex-wrap items-center justify-between gap-3 text-xs shadow-soft">
-          <div className="flex items-start gap-3 text-[#C58A32]">
-            <div className="p-1 rounded-md bg-[#FEF8ED] border border-[#F9E2BE] text-[#C58A32] shrink-0 mt-0.5">
-              <AlertTriangle size={15} />
+        <div className="relative rounded-xl border border-[#F9E2BE] bg-[#FEF8ED] p-4 flex flex-wrap items-center justify-between gap-3 text-xs shadow-soft transition-all overflow-hidden">
+          <BorderBeam size={180} duration={10} colorFrom="#D97736" colorTo="#C58A32" />
+          <div className="flex items-start gap-3 relative z-10">
+            <div className="p-1.5 rounded-lg bg-[#FEF8ED] border border-[#F9E2BE] text-[#C58A32] shrink-0 mt-0.5">
+              <AlertTriangle size={16} />
             </div>
             <div>
-              <span className="font-semibold text-[#29251F]">Priority Action Required Before 11:30 AM:</span>
-              <p className="text-[#777064] mt-0.5 leading-relaxed">
-                A 02:00 PM calendar conflict was detected between <em>Sprint Demo Review</em> and <em>1:1 Aditya</em>. An optimal reschedule to 04:00 PM and notification email have been staged.
+              <span className="font-bold text-[#29251F] text-xs sm:text-sm">Action Required Before 11:30 AM:</span>
+              <p className="text-[#777064] mt-0.5 text-xs leading-relaxed">
+                A 02:00 PM calendar collision was detected between <em>Sprint Demo Review</em> and <em>1:1 Aditya</em>. An optimal reschedule to 04:00 PM and confirmation email draft have been staged.
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 relative z-10">
+            <Button
+              onClick={() => setShowConflictModal(true)}
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs border-[#F9E2BE] bg-[#FFFCF6] hover:bg-[#F1EADF]"
+            >
+              Preview Conflict & Resolution
+            </Button>
             <Link href="/approvals">
               <Button size="sm" className="h-8 text-xs font-semibold bg-[#D97736] hover:bg-[#B95727] text-white gap-1.5">
-                <span>Inspect Staged Decision</span>
+                <span>Authorize Decision</span>
                 <ArrowRight size={13} />
               </Button>
             </Link>
@@ -90,285 +194,395 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* 3. Actionable Overview Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <Link href="/approvals">
-          <Card className="hover:border-[#D97736]/50 transition-all cursor-pointer group border-[#F9E2BE] bg-[#FEF8ED]/40">
-            <CardHeader className="flex flex-row items-center justify-between pb-1.5">
-              <CardTitle className="text-xs font-medium text-[#777064]">Pending Approvals</CardTitle>
-              <div className="p-1.5 rounded-lg bg-[#FEF8ED] text-[#C58A32] border border-[#F9E2BE]">
-                <ShieldAlert size={14} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl font-bold text-[#29251F]">{pendingApprovals.length}</div>
-              <p className="text-[10px] text-[#C58A32] mt-0.5 font-medium">
-                1 Consequential Email • 1 Reschedule
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+      {/* 3. CENTERSTAGE AGENTIC COCKPIT (Interactive 3D Living Core) */}
+      <div className="rounded-2xl border border-[#E8DFD1] bg-[#FFFCF6] p-5 sm:p-6 shadow-soft relative overflow-hidden">
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-[#D97736]/5 rounded-full blur-3xl pointer-events-none" />
 
-        <Link href="/calendar">
-          <Card className="hover:border-[#D97736]/50 transition-all cursor-pointer group">
-            <CardHeader className="flex flex-row items-center justify-between pb-1.5">
-              <CardTitle className="text-xs font-medium text-[#777064]">Today's Meetings</CardTitle>
-              <div className="p-1.5 rounded-lg bg-[#F1EADF] text-[#29251F]">
-                <CalendarIcon size={14} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl font-bold text-[#29251F]">3 Events</div>
-              <p className="text-[10px] text-[#C65345] mt-0.5 font-medium">
-                1 Conflict at 02:00 PM
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+        <div className="flex flex-col lg:flex-row items-center gap-6">
+          {/* Interactive 3D Three.js Living Core */}
+          <div className="shrink-0 flex flex-col items-center justify-center">
+            <Flow3DCore size={110} intensity={isGenerating ? 1.4 : 1.0} interactive={true} />
+            <span className="text-[10px] font-mono text-[#777064] mt-1.5 flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#477A58] animate-pulse" />
+              FLOW Living Core Active
+            </span>
+          </div>
 
-        <Link href="/tasks">
-          <Card className="hover:border-[#D97736]/50 transition-all cursor-pointer group">
-            <CardHeader className="flex flex-row items-center justify-between pb-1.5">
-              <CardTitle className="text-xs font-medium text-[#777064]">Active Tasks</CardTitle>
-              <div className="p-1.5 rounded-lg bg-[#F1EADF] text-[#29251F]">
-                <CheckSquare size={14} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl font-bold text-[#29251F]">4 Tasks</div>
-              <p className="text-[10px] text-[#777064] mt-0.5">
-                Next: Verify pgvector migrations (3 PM)
+          {/* Central Command Input Box */}
+          <div className="flex-1 w-full space-y-3">
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-[#29251F] tracking-tight">
+                What would you like FLOW to coordinate today?
+              </h2>
+              <p className="text-xs text-[#777064] mt-0.5">
+                Instruct FLOW in natural language. Plans are staged with explicit approval gates before any data mutation.
               </p>
-            </CardContent>
-          </Card>
-        </Link>
+            </div>
 
-        <Link href="/inbox">
-          <Card className="hover:border-[#D97736]/50 transition-all cursor-pointer group">
-            <CardHeader className="flex flex-row items-center justify-between pb-1.5">
-              <CardTitle className="text-xs font-medium text-[#777064]">Actionable Emails</CardTitle>
-              <div className="p-1.5 rounded-lg bg-[#F1EADF] text-[#29251F]">
-                <Mail size={14} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl font-bold text-[#29251F]">3 Threads</div>
-              <p className="text-[10px] text-[#D97736] mt-0.5 font-medium">
-                1 Draft awaiting human approval
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+            {/* 21st.dev Integrated Prompt Input */}
+            <PromptInput
+              value={cockpitInput}
+              onChange={setCockpitInput}
+              onSubmit={handleCockpitSubmit}
+              isGenerating={isGenerating}
+              suggestions={quickPrompts}
+              onSelectSuggestion={(prompt) => submitPrompt(prompt)}
+              placeholder="Ask FLOW to resolve today's schedule collision, draft an email, or decompose a task goal..."
+            />
+          </div>
+        </div>
       </div>
 
-      {/* 4. Motion-Inspired Today's Agenda & Activity Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Left 2 Columns: Chronological Agenda & Execution History */}
-        <div className="lg:col-span-2 space-y-5">
-          {/* Chronological Schedule with Conflict Highlights */}
-          <Card className="border-[#E8DFD1] bg-[#FFFCF6]">
-            <CardHeader className="flex flex-row items-center justify-between border-b border-[#E8DFD1] pb-3">
-              <div>
-                <CardTitle className="text-xs font-semibold text-[#29251F] flex items-center gap-2">
-                  <CalendarIcon size={14} className="text-[#D97736]" /> Today's Chronological Agenda
-                </CardTitle>
-                <CardDescription>
-                  Time-blocked meetings and focus intervals synced from Microsoft Graph & Google Calendar.
-                </CardDescription>
-              </div>
-              <Link href="/calendar" className="text-[11px] font-semibold text-[#D97736] hover:text-[#B95727] flex items-center gap-1">
-                <span>Calendar View</span>
-                <ArrowUpRight size={13} />
-              </Link>
-            </CardHeader>
-            <CardContent className="p-4 space-y-3 text-xs">
-              {/* Event 1 */}
-              <div className="flex items-start gap-3 p-2.5 rounded-lg bg-[#F8F4EC]/60 border border-[#E8DFD1]">
-                <span className="font-mono text-[10px] text-[#777064] w-16 shrink-0 mt-0.5">09:00 AM</span>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-semibold text-[#29251F]">Team Standup & Daily Alignment</h4>
-                    <Badge variant="verified" className="text-[9px]">Completed ✓</Badge>
-                  </div>
-                  <p className="text-[11px] text-[#777064] mt-0.5">Aditya Sharma, Nikhil Bhardwaj, Vanshika Rana</p>
-                </div>
-              </div>
+      {/* 4. MAIN PRODUCTIVITY GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column (7 cols): Today's Chronological Agenda */}
+        <div className="lg:col-span-7 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[#29251F]">
+              Today's Chronological Agenda
+            </h2>
+            <Link href="/calendar" className="text-xs font-semibold text-[#D97736] hover:text-[#B95727] flex items-center gap-1">
+              <span>Full Calendar</span>
+              <ChevronRight size={14} />
+            </Link>
+          </div>
 
-              {/* Event 2 */}
-              <div className="flex items-start gap-3 p-2.5 rounded-lg bg-[#F8F4EC]/60 border border-[#E8DFD1]">
-                <span className="font-mono text-[10px] text-[#777064] w-16 shrink-0 mt-0.5">10:00 AM</span>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-semibold text-[#29251F]">Deep Work: Frontend Architecture</h4>
-                    <Badge variant="outline" className="text-[9px] border-[#D97736]/30 text-[#D97736]">Focus Block</Badge>
-                  </div>
-                  <p className="text-[11px] text-[#777064] mt-0.5">2 hours protected time • Notifications muted</p>
-                </div>
-              </div>
+          <div className="space-y-3">
+            {agendaEvents.map((evt, idx) => (
+              <div
+                key={idx}
+                onClick={() => setSelectedEvent(evt)}
+                className={`group flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer shadow-2xs hover:shadow-soft active:scale-[0.99] ${
+                  evt.type === "conflict"
+                    ? "border-[#F5C2BC] bg-[#FDEDEB]/70 hover:bg-[#FDEDEB]"
+                    : evt.type === "proposed"
+                    ? "border-dashed border-[#D0C4B2] bg-[#F8F4EC]/50 hover:bg-[#F8F4EC]"
+                    : "border-[#E8DFD1] bg-[#FFFCF6] hover:bg-[#FDFBFA]"
+                }`}
+              >
+                <span className={`font-mono text-xs font-semibold w-18 shrink-0 mt-0.5 ${
+                  evt.type === "conflict" ? "text-[#C65345] font-bold" : "text-[#777064]"
+                }`}>
+                  {evt.time}
+                </span>
 
-              {/* Event 3 - Conflict */}
-              <div className="flex items-start gap-3 p-2.5 rounded-lg bg-[#FEF8ED] border border-[#F9E2BE]">
-                <span className="font-mono text-[10px] text-[#C65345] font-bold w-16 shrink-0 mt-0.5">02:00 PM</span>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-semibold text-[#29251F] flex items-center gap-1.5">
-                      <AlertTriangle size={13} className="text-[#C65345]" />
-                      <span>Sprint Demo Review (Partner Overlap)</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <h4 className={`font-semibold text-sm truncate ${
+                      evt.type === "conflict" ? "text-[#C65345]" : "text-[#29251F]"
+                    }`}>
+                      {evt.title}
                     </h4>
-                    <Badge variant="destructive" className="text-[9px]">Conflict ⚠️</Badge>
-                  </div>
-                  <p className="text-[11px] text-[#777064] mt-0.5">
-                    Collides with 1:1 Aditya. <span className="text-[#C58A32] font-medium">Staged reschedule to 04:00 PM awaiting approval.</span>
-                  </p>
-                </div>
-              </div>
-
-              {/* Event 4 - Proposed */}
-              <div className="flex items-start gap-3 p-2.5 rounded-lg bg-[#F8F4EC]/40 border border-dashed border-[#D0C4B2]">
-                <span className="font-mono text-[10px] text-[#777064] w-16 shrink-0 mt-0.5">04:00 PM</span>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-[#777064]">1:1 Aditya Review (Proposed Reschedule)</h4>
-                    <Badge variant="warning" className="text-[9px]">Awaiting Approval</Badge>
-                  </div>
-                  <p className="text-[10px] text-[#777064] mt-0.5">Zero conflict score • Aditya confirmed free</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Recent Cryptographically Verified Activity Stream */}
-          <Card className="border-[#E8DFD1] bg-[#FFFCF6]">
-            <CardHeader className="flex flex-row items-center justify-between border-b border-[#E8DFD1] pb-3">
-              <div>
-                <CardTitle className="text-xs font-semibold text-[#29251F] flex items-center gap-2">
-                  <History size={14} className="text-[#477A58]" /> Verified Execution Stream
-                </CardTitle>
-                <CardDescription>
-                  Append-only immutable record of human-approved and system-verified actions.
-                </CardDescription>
-              </div>
-              <Link href="/activity" className="text-[11px] font-semibold text-[#D97736] hover:text-[#B95727] flex items-center gap-1">
-                <span>Full Ledger</span>
-                <ArrowUpRight size={13} />
-              </Link>
-            </CardHeader>
-            <CardContent className="p-4 space-y-3 text-xs divide-y divide-[#E8DFD1]/50">
-              {mockLedger.map((item) => (
-                <div key={item.id} className="pt-2.5 first:pt-0 flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-2.5">
-                    <div className="p-1 rounded-full bg-[#EDF5F0] text-[#477A58] mt-0.5">
-                      <CheckCircle2 size={13} />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-[#29251F] text-xs">{item.title}</p>
-                      <p className="text-[11px] text-[#777064]">{item.initiator} • {item.service}</p>
-                      {item.receipt && (
-                        <p className="text-[9px] font-mono text-[#477A58] mt-0.5">
-                          Receipt: {item.receipt.receiptHash.substring(0, 24)}... (Verified ✓)
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-mono text-[#777064] shrink-0">{item.timestamp}</span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Column: Proactive Intelligence Monitors & Quick Suggestions */}
-        <div className="space-y-5">
-          {/* Lindy-Style Background Guardians */}
-          <Card className="border-[#E8DFD1] bg-[#FFFCF6]">
-            <CardHeader className="border-b border-[#E8DFD1] pb-3">
-              <CardTitle className="text-xs font-semibold text-[#29251F] flex items-center gap-2">
-                <Cpu size={14} className="text-[#D97736]" /> Proactive Background Guardians
-              </CardTitle>
-              <CardDescription>
-                Autonomous observers staging recommendations under strict HITL guardrails.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-4 space-y-3 text-xs">
-              {mockAgents.slice(0, 3).map((agent) => (
-                <div key={agent.id} className="p-3 rounded-xl bg-[#F8F4EC]/60 border border-[#E8DFD1] space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-[#29251F] text-xs flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-[#477A58] animate-pulse" />
-                      {agent.name}
-                    </span>
-                    <Badge variant="outline" className="text-[9px] uppercase font-mono">
-                      {agent.hitlPolicy}
+                    <Badge variant={evt.badgeVariant} className="text-[10px] shrink-0">
+                      {evt.badge}
                     </Badge>
                   </div>
-                  <p className="text-[11px] text-[#777064] leading-relaxed line-clamp-2">
-                    {agent.description}
-                  </p>
-                  <div className="flex items-center justify-between text-[10px] text-[#777064] pt-1 border-t border-[#E8DFD1]/60 font-mono">
-                    <span>Active: {agent.lastActive}</span>
-                    <span className="text-[#D97736]">{agent.actionsExecutedToday} actions staged</span>
+                  {evt.attendees && (
+                    <p className="text-xs text-[#777064] mt-0.5 truncate">{evt.attendees}</p>
+                  )}
+                  {evt.details && (
+                    <p className="text-xs text-[#81766B] mt-0.5 line-clamp-1">{evt.details}</p>
+                  )}
+                </div>
+
+                <ChevronRight size={14} className="text-[#A39B8E] opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right Column (5 cols): Pending Decision Gates & Verified Proofs */}
+        <div className="lg:col-span-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold tracking-tight text-[#29251F]">
+              Pending Decision Gates
+            </h2>
+            <Badge variant="warning" className="text-[10px] font-mono">
+              <NumberTicker value={pendingApprovals.length} /> PENDING
+            </Badge>
+          </div>
+
+          <div className="space-y-3">
+            {pendingApprovals.map((item) => (
+              <Card key={item.id} className="border-[#F9E2BE] bg-[#FFFCF6] shadow-soft p-4 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="text-[10px] text-[#777064] font-mono">Decision #{item.id}</span>
+                    <h3 className="font-semibold text-sm text-[#29251F]">{item.title}</h3>
+                  </div>
+                  <Badge
+                    variant={item.risk === "high" ? "destructive" : "warning"}
+                    className="text-[9px] uppercase font-mono"
+                  >
+                    Risk: {item.risk}
+                  </Badge>
+                </div>
+
+                <p className="text-xs text-[#777064] leading-relaxed">
+                  {item.description}
+                </p>
+
+                <div className="p-2.5 rounded-lg bg-[#F8F4EC] border border-[#E8DFD1] text-[11px] text-[#29251F] font-mono">
+                  Target Service: <span className="font-semibold text-[#D97736]">{item.targetService}</span>
+                </div>
+
+                <div className="pt-2 border-t border-[#E8DFD1] flex items-center justify-between gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs text-[#C65345] hover:bg-[#FDEDEB] border-[#E8DFD1]"
+                    onClick={() => rejectAction(item.id)}
+                  >
+                    <X size={12} className="mr-1" />
+                    <span>Reject</span>
+                  </Button>
+
+                  <div className="flex items-center gap-1.5">
+                    <Link href="/approvals">
+                      <Button size="sm" variant="outline" className="h-8 text-xs border-[#E8DFD1]">
+                        Inspect
+                      </Button>
+                    </Link>
+                    <Button
+                      size="sm"
+                      className="h-8 text-xs font-semibold bg-[#477A58] hover:bg-[#3D6A4C] text-white"
+                      onClick={() => approveAction(item.id)}
+                    >
+                      <Check size={12} className="mr-1" />
+                      <span>Authorize</span>
+                    </Button>
                   </div>
                 </div>
+              </Card>
+            ))}
+
+            {pendingApprovals.length === 0 && (
+              <div className="p-6 text-center border border-dashed border-[#E8DFD1] rounded-xl text-xs text-[#777064] space-y-1">
+                <CheckCircle2 size={18} className="text-[#477A58] mx-auto" />
+                <p className="font-semibold text-[#29251F]">All Decision Gates Clear</p>
+                <p>No actions are waiting for human authorization.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Recent Verified Activity Summary */}
+          <div className="pt-2 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#777064] uppercase tracking-wider flex items-center gap-1.5">
+                <History size={13} className="text-[#477A58]" /> Recently Verified Executions
+              </span>
+              <Link href="/activity" className="text-[11px] text-[#D97736] hover:underline">
+                View Ledger
+              </Link>
+            </div>
+
+            <div className="space-y-2">
+              {mockLedger.slice(0, 2).map((entry) => (
+                <div key={entry.id} className="p-3 rounded-lg border border-[#E8DFD1] bg-[#FFFCF6] text-xs flex items-center justify-between shadow-2xs">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 size={14} className="text-[#477A58] shrink-0" />
+                    <span className="font-medium text-[#29251F] truncate">{entry.title}</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-[#777064] shrink-0">{entry.timestamp}</span>
+                </div>
               ))}
-            </CardContent>
-          </Card>
-
-          {/* Quick AI Copilot Suggestions */}
-          <Card className="border-[#E8DFD1] bg-[#FFFCF6]">
-            <CardHeader className="border-b border-[#E8DFD1] pb-3">
-              <CardTitle className="text-xs font-semibold text-[#29251F] flex items-center gap-2">
-                <Sparkles size={14} className="text-[#D97736]" /> Contextual Quick Actions
-              </CardTitle>
-              <CardDescription>
-                Direct instructions evaluated against your active calendar, inbox, and tasks.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-3.5 space-y-2 text-xs">
-              <button
-                onClick={() => {
-                  toggleOpen();
-                  submitPrompt("Auto-resolve my 2:00 PM conflict by moving Aditya to 4:00 PM and drafting confirmation");
-                }}
-                className="w-full text-left p-2.5 rounded-lg border border-[#E8DFD1] bg-[#F8F4EC]/60 hover:bg-[#F1EADF] text-[#29251F] transition-all group"
-              >
-                <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-[#C58A32]">Resolve 2:00 PM Conflict</span>
-                  <ChevronRight size={13} className="text-[#777064] group-hover:translate-x-0.5 transition-transform" />
-                </div>
-                <p className="text-[11px] text-[#777064] mt-0.5">Move 1:1 Aditya to 4:00 PM & stage email</p>
-              </button>
-
-              <button
-                onClick={() => {
-                  toggleOpen();
-                  submitPrompt("Draft a reply to Aditya regarding pgvector database migration validation");
-                }}
-                className="w-full text-left p-2.5 rounded-lg border border-[#E8DFD1] bg-[#F8F4EC]/60 hover:bg-[#F1EADF] text-[#29251F] transition-all group"
-              >
-                <div className="flex items-center justify-between text-xs font-semibold">
-                  <span>Draft pgvector Migration Reply</span>
-                  <ChevronRight size={13} className="text-[#777064] group-hover:translate-x-0.5 transition-transform" />
-                </div>
-                <p className="text-[11px] text-[#777064] mt-0.5">Send confirmation before 3:00 PM deadline</p>
-              </button>
-
-              <button
-                onClick={() => {
-                  toggleOpen();
-                  submitPrompt("Decompose project goal 'Launch Hackathon Release' into subtasks");
-                }}
-                className="w-full text-left p-2.5 rounded-lg border border-[#E8DFD1] bg-[#F8F4EC]/60 hover:bg-[#F1EADF] text-[#29251F] transition-all group"
-              >
-                <div className="flex items-center justify-between text-xs font-semibold">
-                  <span>Decompose Hackathon Goals</span>
-                  <ChevronRight size={13} className="text-[#777064] group-hover:translate-x-0.5 transition-transform" />
-                </div>
-                <p className="text-[11px] text-[#777064] mt-0.5">Create structured checklist on Task Board</p>
-              </button>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Conflict Resolution Comparison Modal */}
+      <Dialog open={showConflictModal} onOpenChange={setShowConflictModal}>
+        <DialogContent className="max-w-2xl bg-[#FFFCF6] border-[#E8DFD1] text-[#29251F] p-6">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-[#FDEDEB] text-[#C65345] border border-[#F5C2BC]">
+                <AlertTriangle size={18} />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold text-[#29251F]">
+                  Dual-Slot Collision Radar & Staged Resolution
+                </DialogTitle>
+                <DialogDescription className="text-xs text-[#777064]">
+                  Inspect the conflicting schedule overlap vs. FLOW's staged zero-collision proposal.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-3">
+            {/* Left: Conflicting State */}
+            <div className="p-4 rounded-xl border border-[#F5C2BC] bg-[#FDEDEB]/60 space-y-2">
+              <span className="text-[10px] font-bold uppercase font-mono text-[#C65345] flex items-center gap-1">
+                <X size={12} /> Detected Overlap
+              </span>
+              <h4 className="font-bold text-sm text-[#29251F]">Friday 02:00 PM</h4>
+              <p className="text-xs text-[#777064]">
+                <strong>Sprint Demo Review</strong> clashes with <strong>1:1 Aditya Review</strong>.
+              </p>
+              <div className="p-2 rounded bg-white/70 border border-[#F5C2BC] text-[11px] font-mono text-[#C65345]">
+                Conflict Score: 100% (Direct Overlap)
+              </div>
+            </div>
+
+            {/* Right: Proposed Candidate Slot */}
+            <div className="p-4 rounded-xl border border-[#CDE3D5] bg-[#EDF5F0]/60 space-y-2">
+              <span className="text-[10px] font-bold uppercase font-mono text-[#477A58] flex items-center gap-1">
+                <Check size={12} /> Staged Candidate Slot
+              </span>
+              <h4 className="font-bold text-sm text-[#29251F]">Friday 04:00 PM</h4>
+              <p className="text-xs text-[#777064]">
+                1:1 with Aditya moved to 4:00 PM. Confirmed free on Microsoft Graph availability.
+              </p>
+              <div className="p-2 rounded bg-white/70 border border-[#CDE3D5] text-[11px] font-mono text-[#477A58]">
+                Conflict Score: 0% (Optimal Slot)
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-3 border-t border-[#E8DFD1]">
+            <span className="text-xs text-[#777064] font-mono">Idempotency Key: #idemp_ev_9921_mod</span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowConflictModal(false)}
+                className="text-xs border-[#E8DFD1]"
+              >
+                Dismiss
+              </Button>
+              <Button
+                size="sm"
+                className="text-xs font-semibold bg-[#477A58] hover:bg-[#3D6A4C] text-white gap-1.5"
+                onClick={() => {
+                  approveAction("appr_101");
+                  setShowConflictModal(false);
+                }}
+              >
+                <Check size={13} />
+                <span>Authorize Reschedule (HITL)</span>
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Interactive Agenda Event Detail Dialog */}
+      <Dialog open={!!selectedEvent} onOpenChange={(open) => !open && setSelectedEvent(null)}>
+        {selectedEvent && (
+          <DialogContent className="max-w-md bg-[#FFFCF6] border-[#E8DFD1] text-[#29251F] p-5">
+            <DialogHeader>
+              <div className="flex items-center justify-between">
+                <Badge variant={selectedEvent.badgeVariant} className="text-[10px]">
+                  {selectedEvent.badge}
+                </Badge>
+                <span className="text-xs font-mono font-bold text-[#777064]">{selectedEvent.time}</span>
+              </div>
+              <DialogTitle className="text-base font-bold text-[#29251F] mt-1.5">
+                {selectedEvent.title}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-3 py-2 text-xs">
+              {selectedEvent.attendees && (
+                <div className="flex items-start gap-2 text-[#777064]">
+                  <Users size={14} className="shrink-0 mt-0.5 text-primary" />
+                  <div>
+                    <span className="font-semibold text-[#29251F]">Attendees:</span>
+                    <p className="mt-0.5">{selectedEvent.attendees}</p>
+                  </div>
+                </div>
+              )}
+
+              {selectedEvent.details && (
+                <div className="p-3 rounded-lg bg-[#F8F4EC] border border-[#E8DFD1] text-[#29251F] leading-relaxed">
+                  {selectedEvent.details}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E8DFD1]">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedEvent(null)}
+                className="text-xs border-[#E8DFD1]"
+              >
+                Close
+              </Button>
+              <Link href="/calendar">
+                <Button size="sm" className="text-xs font-semibold bg-primary hover:bg-primary-hover text-white gap-1">
+                  <CalendarCheck size={13} />
+                  <span>Open in Calendar</span>
+                </Button>
+              </Link>
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
+
+      {/* Execution Plan Preview Dialog */}
+      <Dialog open={showPlanModal} onOpenChange={setShowPlanModal}>
+        <DialogContent className="max-w-xl bg-[#FFFCF6] border-[#E8DFD1] text-[#29251F] p-6">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-[#FCEEE5] text-[#D97736] border border-[#F7D2BC]">
+                <Terminal size={16} />
+              </div>
+              <div>
+                <DialogTitle className="text-sm font-bold text-[#29251F]">
+                  Agent Execution Plan Preview
+                </DialogTitle>
+                <DialogDescription className="text-xs text-[#777064]">
+                  Inspect the proposed multi-step execution DAG before granting authorization.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="p-3 rounded-lg bg-[#F8F4EC] border border-[#E8DFD1]">
+              <span className="text-[10px] uppercase font-mono font-bold text-[#777064]">Plan Goal</span>
+              <h4 className="font-semibold text-[#29251F] text-sm mt-0.5">{mockInitialPlan.goal}</h4>
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[10px] uppercase font-mono font-bold text-[#777064]">Execution Sequence</span>
+              {mockInitialPlan.steps.map((step, idx) => (
+                <div key={step.id} className="p-2.5 rounded-lg border border-[#E8DFD1] bg-[#FFFCF6] flex items-center justify-between text-xs shadow-2xs">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[10px] text-[#777064]">Step {idx + 1}</span>
+                    <span className="font-medium text-[#29251F]">{step.description}</span>
+                  </div>
+                  <Badge variant={step.status === "completed" ? "verified" : "warning"} className="text-[9px] font-mono">
+                    {step.status}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E8DFD1]">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPlanModal(false)}
+              className="text-xs border-[#E8DFD1]"
+            >
+              Close Preview
+            </Button>
+            <Link href="/approvals">
+              <Button
+                size="sm"
+                className="text-xs font-semibold bg-[#D97736] hover:bg-[#B95727] text-white"
+                onClick={() => setShowPlanModal(false)}
+              >
+                Go to Decision Center
+              </Button>
+            </Link>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </FadeIn>
   );
 }

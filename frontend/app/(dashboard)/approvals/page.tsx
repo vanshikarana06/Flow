@@ -25,6 +25,11 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { FadeIn } from "@/components/ui/motion-primitives";
+import { CardSpotlight } from "@/components/ui/card-spotlight";
+import { ShimmerButton } from "@/components/ui/shimmer-button";
+import { SlideToConfirm } from "@/components/ui/slide-to-confirm";
+import { triggerConfetti } from "@/lib/confetti";
 import { useApprovalStore } from "@/stores/use-approval-store";
 import { ApprovalItem } from "@/lib/types";
 
@@ -95,13 +100,13 @@ export default function ApprovalsPage() {
       {/* USP Banner Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-[#E8DFD1]">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold tracking-tight text-[#29251F]">Approval Center</h2>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#29251F]">Approval Center</h1>
             <Badge variant="warning" className="text-[10px] px-2 font-mono">
               {pendingApprovals.length} PENDING DECISIONS
             </Badge>
           </div>
-          <p className="text-xs text-[#777064] mt-0.5">
+          <p className="text-xs sm:text-sm text-[#777064] mt-0.5">
             Human-in-the-Loop Decision Gate. Consequential actions require your explicit authorization before execution.
           </p>
         </div>
@@ -120,23 +125,29 @@ export default function ApprovalsPage() {
           )}
 
           {pendingApprovals.length > 0 && (
-            <Button
-              size="sm"
-              variant="default"
-              className="text-xs font-semibold gap-1.5 bg-[#D97736] hover:bg-[#B95727] text-white"
+            <ShimmerButton
+              shimmerColor="rgba(255, 255, 255, 0.45)"
+              background="#D97736"
+              className="h-8 gap-1.5 px-3"
               onClick={() => {
+                triggerConfetti({
+                  particleCount: 50,
+                  spread: 70,
+                  origin: { y: 0.6 },
+                  colors: ["#F28C38", "#477A58", "#C65D20"],
+                });
                 pendingApprovals.forEach((a) => approveAction(a.id));
               }}
             >
               <Check size={13} />
               <span>Batch Authorize All ({pendingApprovals.length})</span>
-            </Button>
+            </ShimmerButton>
           )}
         </div>
       </div>
 
-      {/* Review Cards (GitHub PR Review Archetype in Cream & Orange) */}
-      <div className="space-y-4">
+      {/* Review Cards (GitHub PR Review Archetype in Cream & Orange with Aceternity CardSpotlight) */}
+      <FadeIn className="space-y-4">
         {approvals.map((item) => {
           const isPending = item.status === "pending";
           const isApproved = item.status === "approved";
@@ -144,21 +155,8 @@ export default function ApprovalsPage() {
           const isCompleted = item.status === "completed";
           const isRejected = item.status === "rejected";
 
-          return (
-            <Card
-              key={item.id}
-              className={`border transition-all duration-200 overflow-hidden shadow-soft ${
-                isPending
-                  ? "border-[#F9E2BE] bg-[#FFFCF6]"
-                  : isCompleted
-                  ? "border-[#CDE3D5] bg-[#EDF5F0]/20"
-                  : isExecuting
-                  ? "border-[#D97736]/40 bg-[#FFFCF6]"
-                  : isRejected
-                  ? "border-[#E8DFD1] bg-[#F1EADF]/30 opacity-60"
-                  : "border-[#E8DFD1] bg-[#FFFCF6]"
-              }`}
-            >
+          const cardContent = (
+            <div className="overflow-hidden rounded-xl">
               {/* Card Meta Bar */}
               <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 border-b border-[#E8DFD1] bg-[#F8F4EC]/70 text-xs">
                 <div className="flex items-center gap-2">
@@ -171,7 +169,7 @@ export default function ApprovalsPage() {
                       <CheckSquare size={13} className="text-[#C58A32]" />
                     )}
                   </div>
-                  <span className="font-semibold text-[#29251F]">{item.title}</span>
+                  <h3 className="text-sm font-semibold text-[#29251F]">{item.title}</h3>
                   <span className="text-[10px] text-[#777064] font-mono">#{item.id}</span>
                 </div>
 
@@ -315,41 +313,83 @@ export default function ApprovalsPage() {
 
               {/* Action Decision Gate Footer (Only for Pending or Modified) */}
               {(isPending || item.status === "modified") && (
-                <CardFooter className="px-4 py-3 bg-[#F8F4EC]/50 border-t border-[#E8DFD1] flex flex-wrap items-center justify-end gap-2">
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    className="h-8 text-xs gap-1"
-                    onClick={() => rejectAction(item.id)}
-                  >
-                    <X size={13} />
-                    <span>Reject Action</span>
-                  </Button>
+                <CardFooter className="px-4 py-3 bg-[#F8F4EC]/50 border-t border-[#E8DFD1] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="h-8 text-xs gap-1"
+                      onClick={() => rejectAction(item.id)}
+                    >
+                      <X size={13} />
+                      <span>Reject Action</span>
+                    </Button>
 
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 text-xs gap-1 border-[#E8DFD1] hover:bg-[#F1EADF] text-[#29251F]"
-                    onClick={() => openModifyDialog(item)}
-                  >
-                    <Edit3 size={13} />
-                    <span>Modify Parameters</span>
-                  </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs gap-1 border-[#E8DFD1] hover:bg-[#F1EADF] text-[#29251F]"
+                      onClick={() => openModifyDialog(item)}
+                    >
+                      <Edit3 size={13} />
+                      <span>Modify Parameters</span>
+                    </Button>
+                  </div>
 
-                  <Button
-                    size="sm"
-                    className="h-8 text-xs font-semibold gap-1.5 bg-[#477A58] hover:bg-[#3D6A4C] text-white"
-                    onClick={() => approveAction(item.id)}
-                  >
-                    <Check size={13} />
-                    <span>Approve & Execute (HITL)</span>
-                  </Button>
+                  {item.risk === "high" ? (
+                    <div className="w-full sm:w-72">
+                      <SlideToConfirm
+                        onConfirm={() => approveAction(item.id)}
+                        label="Slide to Authorize (High Risk)"
+                        confirmedLabel="Authorized & Dispatched"
+                      />
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="h-8 text-xs font-semibold gap-1.5 bg-[#477A58] hover:bg-[#3D6A4C] text-white shadow-2xs"
+                      onClick={() => approveAction(item.id)}
+                    >
+                      <Check size={13} />
+                      <span>Approve & Execute (HITL)</span>
+                    </Button>
+                  )}
                 </CardFooter>
               )}
+            </div>
+          );
+
+          if (isPending) {
+            return (
+              <CardSpotlight
+                key={item.id}
+                color="rgba(217, 119, 54, 0.08)"
+                radius={320}
+                className="border-[#F9E2BE] bg-[#FFFCF6]"
+              >
+                {cardContent}
+              </CardSpotlight>
+            );
+          }
+
+          return (
+            <Card
+              key={item.id}
+              className={`border transition-all duration-200 overflow-hidden shadow-soft ${
+                isCompleted
+                  ? "border-[#CDE3D5] bg-[#EDF5F0]/20"
+                  : isExecuting
+                  ? "border-[#D97736]/40 bg-[#FFFCF6]"
+                  : isRejected
+                  ? "border-[#E8DFD1] bg-[#F1EADF]/30 opacity-60"
+                  : "border-[#E8DFD1] bg-[#FFFCF6]"
+              }`}
+            >
+              {cardContent}
             </Card>
           );
         })}
-      </div>
+      </FadeIn>
 
       {/* Structured Parameter Modification Modal */}
       <Dialog open={!!modifyingItem} onOpenChange={(open) => !open && setModifyingItem(null)}>
