@@ -11,28 +11,29 @@ import {
   Calendar, 
   CheckCircle2, 
   ArrowRight,
-  Filter
+  Filter,
+  Check
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { FadeIn } from "@/components/ui/motion-primitives";
+import { ShimmerButton } from "@/components/ui/shimmer-button";
+import { DndKanban } from "@/components/tasks/dnd-kanban";
 import { mockTasks } from "@/lib/mock-data";
 import { TaskItem } from "@/lib/types";
 import { useCopilotStore } from "@/stores/use-copilot-store";
+import { triggerConfetti } from "@/lib/confetti";
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<TaskItem[]>(mockTasks);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [showDecomposerModal, setShowDecomposerModal] = useState(false);
+  const [goalInput, setGoalInput] = useState("");
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const { toggleOpen, submitPrompt } = useCopilotStore();
-
-  const columns: { id: TaskItem["status"]; title: string }[] = [
-    { id: "todo", title: "To Do" },
-    { id: "in_progress", title: "In Progress" },
-    { id: "in_review", title: "In Review" },
-    { id: "completed", title: "Completed" },
-  ];
 
   const categories = ["All", "Backend", "Product", "Security", "Research"];
 
@@ -40,20 +41,47 @@ export default function TasksPage() {
     selectedCategory === "All" ? true : t.category === selectedCategory
   );
 
-  const toggleTaskCompleted = (id: string) => {
-    setTasks(tasks.map(t => 
-      t.id === id 
-        ? { 
-            ...t, 
-            status: t.status === "completed" ? "todo" : "completed",
-            progress: t.status === "completed" ? 0 : 100 
-          }
-        : t
-    ));
+  const handleBlockTime = (task: TaskItem) => {
+    setToastMessage(`Calendar Focus Block staged for "${task.title}" at 3:00 PM`);
+    triggerConfetti({ particleCount: 25, spread: 45, origin: { y: 0.75 } });
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleDecomposeGoal = () => {
+    if (!goalInput.trim()) return;
+
+    const newTask: TaskItem = {
+      id: `task_${Date.now()}`,
+      title: goalInput,
+      category: "Product",
+      priority: "high",
+      status: "todo",
+      progress: 0,
+      estimatedDuration: "2.5 hrs",
+      dueDate: "Tomorrow",
+      aiBreakdown: [
+        "Audit existing schema specifications",
+        "Generate automated integration test suite",
+        "Deploy prototype behind feature flag"
+      ]
+    };
+
+    setTasks([newTask, ...tasks]);
+    setGoalInput("");
+    setShowDecomposerModal(false);
+    triggerConfetti({ particleCount: 40, spread: 60, origin: { y: 0.6 } });
   };
 
   return (
     <FadeIn className="space-y-5">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 p-3 rounded-xl border border-[#CDE3D5] bg-[#EDF5F0] text-[#477A58] text-xs font-semibold shadow-elevated animate-in slide-in-from-bottom duration-200">
+          <CheckCircle2 size={16} />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Task View Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-3 border-b border-[#E8DFD1]">
         <div>
@@ -64,7 +92,7 @@ export default function TasksPage() {
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-[#777064] mt-0.5">
-            Motion-inspired task management with AI goal decomposition and calendar time blocking.
+            Interactive physics-based drag-and-drop Kanban with AI goal decomposition and calendar time blocking.
           </p>
         </div>
 
@@ -75,9 +103,9 @@ export default function TasksPage() {
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
                   selectedCategory === cat
-                    ? "bg-[#D97736] text-white"
+                    ? "bg-primary text-white shadow-2xs font-semibold"
                     : "text-[#777064] hover:bg-[#F1EADF] hover:text-[#29251F]"
                 }`}
               >
@@ -90,8 +118,8 @@ export default function TasksPage() {
           <div className="flex items-center bg-[#F1EADF] p-0.5 rounded-lg border border-[#E8DFD1]">
             <button
               onClick={() => setViewMode("kanban")}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
-                viewMode === "kanban" ? "bg-[#FFFCF6] text-[#29251F] shadow-2xs" : "text-[#777064]"
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                viewMode === "kanban" ? "bg-[#FFFCF6] text-[#29251F] shadow-2xs font-semibold" : "text-[#777064]"
               }`}
             >
               <Kanban size={13} />
@@ -99,8 +127,8 @@ export default function TasksPage() {
             </button>
             <button
               onClick={() => setViewMode("list")}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
-                viewMode === "list" ? "bg-[#FFFCF6] text-[#29251F] shadow-2xs" : "text-[#777064]"
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                viewMode === "list" ? "bg-[#FFFCF6] text-[#29251F] shadow-2xs font-semibold" : "text-[#777064]"
               }`}
             >
               <ListIcon size={13} />
@@ -108,177 +136,117 @@ export default function TasksPage() {
             </button>
           </div>
 
-          <Button
-            onClick={() => {
-              toggleOpen();
-              submitPrompt("Decompose my high-level project goal 'Launch FLOW Hackathon Release' into subtasks with time estimates");
-            }}
-            size="sm"
-            className="text-xs font-semibold gap-1.5 bg-[#D97736] hover:bg-[#B95727] text-white"
+          <ShimmerButton
+            onClick={() => setShowDecomposerModal(true)}
+            shimmerColor="rgba(255, 255, 255, 0.45)"
+            background="#D97736"
+            className="h-8 gap-1.5 px-3"
           >
             <Sparkles size={13} />
             <span>AI Goal Decomposer</span>
-          </Button>
+          </ShimmerButton>
         </div>
       </div>
 
-      {/* Kanban Board View */}
+      {/* Kanban Board or Tabular List */}
       {viewMode === "kanban" ? (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3.5">
-          {columns.map((col) => {
-            const colTasks = filteredTasks.filter((t) => t.status === col.id);
-            return (
-              <div key={col.id} className="space-y-2.5">
-                <div className="flex items-center justify-between text-xs font-semibold text-[#777064] px-1">
-                  <span>{col.title}</span>
-                  <span className="flex h-4 w-4 items-center justify-center rounded bg-[#F1EADF] font-mono text-[9px] text-[#29251F]">
-                    {colTasks.length}
-                  </span>
-                </div>
-
-                <div className="space-y-2.5">
-                  {colTasks.map((task) => (
-                    <Card
-                      key={task.id}
-                      className="border-[#E8DFD1] bg-[#FFFCF6] hover:border-[#D97736]/40 transition-all p-3 space-y-2.5 shadow-2xs"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-[9px] font-semibold text-[#D97736] font-mono uppercase">
-                          {task.category}
-                        </span>
-                        <Badge
-                          variant={
-                            task.priority === "urgent"
-                              ? "destructive"
-                              : task.priority === "high"
-                              ? "warning"
-                              : "secondary"
-                          }
-                          className="text-[8px] px-1.5 py-0"
-                        >
-                          {task.priority.toUpperCase()}
-                        </Badge>
-                      </div>
-
-                      <h4 className="text-xs font-semibold text-[#29251F] leading-snug">
-                        {task.title}
-                      </h4>
-
-                      {/* AI Breakdown Subtasks */}
-                      {task.aiBreakdown && task.aiBreakdown.length > 0 && (
-                        <div className="rounded-lg bg-[#F8F4EC] p-2 space-y-1 border border-[#E8DFD1]">
-                          <span className="text-[9px] font-semibold text-[#777064] uppercase tracking-wider flex items-center gap-1">
-                            <Sparkles size={10} className="text-[#D97736]" /> AI Decomposition
-                          </span>
-                          {task.aiBreakdown.map((step, idx) => (
-                            <div key={idx} className="flex items-center gap-1.5 text-[10px] text-[#777064]">
-                              <div className="h-1.5 w-1.5 rounded-full bg-[#D97736] shrink-0" />
-                              <span className="truncate">{step}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Duration & Time Blocking */}
-                      <div className="flex items-center justify-between text-[10px] text-[#777064] pt-1 border-t border-[#E8DFD1]/50 font-mono">
-                        <span className="flex items-center gap-1">
-                          <Clock size={11} /> {task.estimatedDuration || "1 hr"}
-                        </span>
-                        <button
-                          onClick={() => {
-                            toggleOpen();
-                            submitPrompt(`Schedule time block for task: "${task.title}"`);
-                          }}
-                          className="text-[10px] text-[#D97736] hover:underline flex items-center gap-0.5 font-sans"
-                        >
-                          <Calendar size={10} />
-                          <span>Block Time</span>
-                        </button>
-                      </div>
-
-                      {/* Progress Bar & Due Date */}
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between text-[10px] text-[#777064]">
-                          <span className="font-mono">{task.dueDate}</span>
-                          <span className="font-mono text-[#29251F] font-semibold">{task.progress}%</span>
-                        </div>
-                        <div className="h-1.5 w-full bg-[#F1EADF] rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-[#D97736] rounded-full transition-all duration-300"
-                            style={{ width: `${task.progress}%` }}
-                          />
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-
-                  {colTasks.length === 0 && (
-                    <div className="p-6 text-center border border-dashed border-[#E8DFD1] rounded-xl text-xs text-[#777064]">
-                      No tasks in {col.title}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <DndKanban
+          tasks={filteredTasks}
+          onTasksChange={setTasks}
+          onBlockTime={handleBlockTime}
+        />
       ) : (
-        /* List View */
-        <Card className="divide-y divide-[#E8DFD1] border-[#E8DFD1] bg-[#FFFCF6]">
+        <Card className="border-[#E8DFD1] bg-[#FFFCF6] shadow-soft overflow-hidden divide-y divide-[#E8DFD1]/60">
           {filteredTasks.map((task) => (
-            <div
-              key={task.id}
-              className="flex items-center justify-between p-3.5 hover:bg-[#F8F4EC]/60 text-xs transition-colors"
-            >
+            <div key={task.id} className="p-4 flex items-center justify-between text-xs hover:bg-[#F8F4EC]/40 transition-colors">
               <div className="flex items-center gap-3">
-                <button
-                  onClick={() => toggleTaskCompleted(task.id)}
-                  className="text-[#777064] hover:text-[#477A58] transition-colors"
-                >
-                  {task.status === "completed" ? (
-                    <CheckCircle2 size={16} className="text-[#477A58]" />
-                  ) : (
-                    <div className="h-4 w-4 rounded border border-[#D0C4B2] hover:border-[#D97736]" />
-                  )}
-                </button>
+                <CheckCircle2
+                  size={16}
+                  className={task.status === "completed" ? "text-[#477A58]" : "text-[#A39B8E]"}
+                />
                 <div>
-                  <h4 className={`font-semibold text-[#29251F] ${task.status === "completed" ? "line-through text-[#777064]" : ""}`}>
-                    {task.title}
-                  </h4>
-                  <p className="text-[10px] text-[#777064] font-mono mt-0.5">
-                    {task.category} • Est: {task.estimatedDuration || "1 hr"} • Due {task.dueDate}
-                  </p>
+                  <h4 className="font-semibold text-sm text-[#29251F]">{task.title}</h4>
+                  <p className="text-[11px] text-[#777064]">Category: {task.category} • Est: {task.estimatedDuration || "45m"}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2.5">
-                <Badge
-                  variant={
-                    task.priority === "urgent"
-                      ? "destructive"
-                      : task.priority === "high"
-                      ? "warning"
-                      : "secondary"
-                  }
-                  className="text-[9px] uppercase font-mono"
+
+              <div className="flex items-center gap-3">
+                <Badge variant={task.status === "completed" ? "verified" : "outline"} className="text-[10px]">
+                  {task.status.replace("_", " ").toUpperCase()}
+                </Badge>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleBlockTime(task)}
+                  className="h-7 text-xs border-[#E8DFD1]"
                 >
-                  {task.priority}
-                </Badge>
-                <Badge variant="outline" className="text-[9px] border-[#E8DFD1] font-mono">
-                  {task.status.toUpperCase()}
-                </Badge>
-                <div className="w-16 hidden sm:block">
-                  <div className="h-1.5 w-full bg-[#F1EADF] rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-[#D97736] rounded-full"
-                      style={{ width: `${task.progress}%` }}
-                    />
-                  </div>
-                </div>
+                  Block Time
+                </Button>
               </div>
             </div>
           ))}
         </Card>
       )}
+
+      {/* AI Goal Decomposer Modal */}
+      <Dialog open={showDecomposerModal} onOpenChange={setShowDecomposerModal}>
+        <DialogContent className="max-w-md bg-[#FFFCF6] border-[#E8DFD1] p-5 text-[#29251F]">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-[#FCEEE5] text-primary border border-[#F7D2BC]">
+                <Sparkles size={16} />
+              </div>
+              <div>
+                <DialogTitle className="text-sm font-bold text-[#29251F]">
+                  Autonomous Goal Decomposition
+                </DialogTitle>
+                <DialogDescription className="text-xs text-[#777064]">
+                  Enter a high-level outcome. FLOW decomposes it into actionable Kanban subtasks.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div>
+              <label className="text-[11px] font-semibold text-[#777064]">Project Goal</label>
+              <input
+                value={goalInput}
+                onChange={(e) => setGoalInput(e.target.value)}
+                placeholder="e.g. Implement OAuth 2.0 PKCE Flow & Cookie Security"
+                className="w-full h-9 px-3 mt-1 rounded-lg border border-[#E8DFD1] bg-[#F8F4EC] text-xs text-[#29251F] focus:border-primary focus:outline-none"
+              />
+            </div>
+
+            <div className="p-3 rounded-lg bg-[#F8F4EC] border border-[#E8DFD1] text-[11px] text-[#777064] space-y-1">
+              <span className="font-semibold text-[#29251F]">Autonomous Breakdown Preview:</span>
+              <p>• Extract token verification endpoints</p>
+              <p>• Configure HttpOnly SameSite cookie sessions</p>
+              <p>• Run automated integration test suite</p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E8DFD1]">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowDecomposerModal(false)}
+              className="text-xs border-[#E8DFD1]"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleDecomposeGoal}
+              disabled={!goalInput.trim()}
+              className="text-xs font-semibold bg-primary hover:bg-primary-hover text-white gap-1"
+            >
+              <Sparkles size={13} />
+              <span>Decompose & Add to Board</span>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </FadeIn>
   );
 }

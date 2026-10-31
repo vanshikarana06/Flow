@@ -28,6 +28,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { FadeIn } from "@/components/ui/motion-primitives";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
+import { SlideToConfirm } from "@/components/ui/slide-to-confirm";
+import { triggerConfetti } from "@/lib/confetti";
 import { useApprovalStore } from "@/stores/use-approval-store";
 import { ApprovalItem } from "@/lib/types";
 
@@ -128,6 +130,12 @@ export default function ApprovalsPage() {
               background="#D97736"
               className="h-8 gap-1.5 px-3"
               onClick={() => {
+                triggerConfetti({
+                  particleCount: 50,
+                  spread: 70,
+                  origin: { y: 0.6 },
+                  colors: ["#F28C38", "#477A58", "#C65D20"],
+                });
                 pendingApprovals.forEach((a) => approveAction(a.id));
               }}
             >
@@ -305,35 +313,47 @@ export default function ApprovalsPage() {
 
               {/* Action Decision Gate Footer (Only for Pending or Modified) */}
               {(isPending || item.status === "modified") && (
-                <CardFooter className="px-4 py-3 bg-[#F8F4EC]/50 border-t border-[#E8DFD1] flex flex-wrap items-center justify-end gap-2">
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    className="h-8 text-xs gap-1"
-                    onClick={() => rejectAction(item.id)}
-                  >
-                    <X size={13} />
-                    <span>Reject Action</span>
-                  </Button>
+                <CardFooter className="px-4 py-3 bg-[#F8F4EC]/50 border-t border-[#E8DFD1] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="h-8 text-xs gap-1"
+                      onClick={() => rejectAction(item.id)}
+                    >
+                      <X size={13} />
+                      <span>Reject Action</span>
+                    </Button>
 
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 text-xs gap-1 border-[#E8DFD1] hover:bg-[#F1EADF] text-[#29251F]"
-                    onClick={() => openModifyDialog(item)}
-                  >
-                    <Edit3 size={13} />
-                    <span>Modify Parameters</span>
-                  </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs gap-1 border-[#E8DFD1] hover:bg-[#F1EADF] text-[#29251F]"
+                      onClick={() => openModifyDialog(item)}
+                    >
+                      <Edit3 size={13} />
+                      <span>Modify Parameters</span>
+                    </Button>
+                  </div>
 
-                  <Button
-                    size="sm"
-                    className="h-8 text-xs font-semibold gap-1.5 bg-[#477A58] hover:bg-[#3D6A4C] text-white"
-                    onClick={() => approveAction(item.id)}
-                  >
-                    <Check size={13} />
-                    <span>Approve & Execute (HITL)</span>
-                  </Button>
+                  {item.risk === "high" ? (
+                    <div className="w-full sm:w-72">
+                      <SlideToConfirm
+                        onConfirm={() => approveAction(item.id)}
+                        label="Slide to Authorize (High Risk)"
+                        confirmedLabel="Authorized & Dispatched"
+                      />
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="h-8 text-xs font-semibold gap-1.5 bg-[#477A58] hover:bg-[#3D6A4C] text-white shadow-2xs"
+                      onClick={() => approveAction(item.id)}
+                    >
+                      <Check size={13} />
+                      <span>Approve & Execute (HITL)</span>
+                    </Button>
+                  )}
                 </CardFooter>
               )}
             </div>

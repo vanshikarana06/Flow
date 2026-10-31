@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import { 
   Search, 
   Sparkles, 
-  Command as CommandIcon 
+  Command as CommandIcon,
+  Menu
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,7 @@ import { useApprovalStore } from "@/stores/use-approval-store";
 export function Header() {
   const pathname = usePathname();
   const { toggleOpen, isOpen } = useCopilotStore();
-  const { setCommandMenuOpen } = useLayoutStore();
+  const { setCommandMenuOpen, toggleMobileMenu } = useLayoutStore();
   const { approvals } = useApprovalStore();
 
   const pendingCount = approvals.filter((a) => a.status === "pending").length;
@@ -38,9 +39,17 @@ export function Header() {
   };
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#E8DFD1] bg-[#FFFCF6]/90 px-4 md:px-6 backdrop-blur-xs z-20">
-      {/* Breadcrumb / Title */}
-      <div className="flex items-center gap-2.5">
+    <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#E8DFD1] bg-[#FFFCF6]/90 px-3 md:px-6 backdrop-blur-xs z-20">
+      {/* Mobile Menu & Breadcrumb / Title */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={toggleMobileMenu}
+          className="lg:hidden p-1.5 text-[#777064] hover:text-[#29251F] rounded-lg hover:bg-[#F1EADF] transition-colors"
+          title="Open Navigation"
+        >
+          <Menu size={18} />
+        </button>
+
         <span className="text-sm font-semibold text-[#29251F] tracking-tight">{getPageTitle()}</span>
         <Badge variant="outline" className="hidden sm:inline-flex text-[9px] text-[#777064] border-[#E8DFD1]">
           FLOW OS
@@ -50,13 +59,13 @@ export function Header() {
       {/* Center ⌘K Search Pill */}
       <button
         onClick={() => setCommandMenuOpen(true)}
-        className="flex h-8 w-56 md:w-72 items-center justify-between rounded-lg border border-[#E8DFD1] bg-[#F1EADF]/60 px-2.5 text-xs text-[#777064] hover:border-[#D0C4B2] hover:text-[#29251F] transition-all shadow-2xs"
+        className="flex h-8 w-44 sm:w-56 md:w-72 items-center justify-between rounded-lg border border-[#E8DFD1] bg-[#F1EADF]/60 px-2.5 text-xs text-[#777064] hover:border-[#D0C4B2] hover:text-[#29251F] transition-all shadow-2xs"
       >
-        <span className="flex items-center gap-2">
-          <Search size={13} className="text-[#A39B8E]" />
-          <span className="text-[11px]">Quick actions & search...</span>
+        <span className="flex items-center gap-2 truncate">
+          <Search size={13} className="text-[#A39B8E] shrink-0" />
+          <span className="text-[11px] truncate">Quick actions & search...</span>
         </span>
-        <kbd className="flex items-center gap-0.5 rounded bg-[#FFFCF6] px-1.5 py-0.5 text-[9px] text-[#777064] border border-[#E8DFD1] font-mono">
+        <kbd className="hidden sm:flex items-center gap-0.5 rounded bg-[#FFFCF6] px-1.5 py-0.5 text-[9px] text-[#777064] border border-[#E8DFD1] font-mono shrink-0">
           <CommandIcon size={9} /> K
         </kbd>
       </button>

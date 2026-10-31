@@ -8,12 +8,15 @@ import {
   Fingerprint, 
   Lock, 
   Mail, 
-  ArrowRight 
+  ArrowRight,
+  ShieldCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { FlowAgentOrb } from "@/components/ui/flow-agent-orb";
+import { Flow3DCore } from "@/components/ui/flow-3d-core";
+import { CardSpotlight } from "@/components/ui/card-spotlight";
+import { DecryptedText } from "@/components/ui/decrypted-text";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -38,25 +41,25 @@ export default function LoginPage() {
 
   return (
     <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-center z-10">
-      {/* Left: Product Manifesto / Hero */}
+      {/* Left: Product Manifesto / 3D Living Core Hero */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#D97736] text-white font-bold text-base shadow-sm">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white font-bold text-base shadow-sm">
               F
             </div>
             <span className="text-xl font-bold tracking-tight text-[#29251F]">FLOW</span>
-            <Badge variant="outline" className="text-[10px] text-[#D97736] border-[#D97736]/30 bg-[#D97736]/5">
+            <Badge variant="outline" className="text-[10px] text-primary border-primary/30 bg-primary/5">
               v2.0
             </Badge>
           </div>
-          <FlowAgentOrb size={46} glow={true} isProcessing={false} />
+          <Flow3DCore size={68} intensity={1.2} interactive={true} />
         </div>
 
         <div className="space-y-3">
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-[#29251F] leading-tight">
             Trust-First Agentic <br />
-            <span className="text-[#D97736]">
+            <span className="text-primary">
               Productivity OS
             </span>
           </h1>
@@ -72,8 +75,10 @@ export default function LoginPage() {
             <span>Human-in-the-Loop decision guardrails before action execution</span>
           </div>
           <div className="flex items-center gap-2.5 text-xs text-[#29251F]">
-            <Fingerprint size={16} className="text-[#D97736] shrink-0" />
-            <span>Cryptographic activity ledger with verified receipt hashes</span>
+            <Fingerprint size={16} className="text-primary shrink-0" />
+            <span className="font-mono">
+              <DecryptedText text="Cryptographic activity ledger with verified receipt hashes" speed={30} />
+            </span>
           </div>
           <div className="flex items-center gap-2.5 text-xs text-[#29251F]">
             <Cpu size={16} className="text-[#C58A32] shrink-0" />
@@ -82,8 +87,12 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right: Warm Auth Card */}
-      <div className="bg-[#FFFCF6] border border-[#E8DFD1] rounded-2xl p-6 md:p-8 space-y-6 shadow-sm">
+      {/* Right: Interactive Spotlight Auth Card */}
+      <CardSpotlight
+        color="rgba(242, 140, 56, 0.12)"
+        radius={360}
+        className="bg-[#FFFCF6] border border-[#E8DFD1] rounded-2xl p-6 md:p-8 space-y-6 shadow-soft"
+      >
         <div className="space-y-1 text-center sm:text-left">
           <h2 className="text-lg font-bold text-[#29251F]">Sign in to FLOW</h2>
           <p className="text-xs text-[#777064]">Choose your workspace identity provider</p>
@@ -94,7 +103,7 @@ export default function LoginPage() {
           <Button
             onClick={() => handleOAuthLogin("google")}
             variant="outline"
-            className="w-full justify-center gap-3 h-10 border-[#E8DFD1] bg-[#F1EADF]/40 hover:bg-[#F1EADF] text-[#29251F] text-xs font-semibold"
+            className="w-full justify-center gap-3 h-10 border-[#E8DFD1] bg-[#F1EADF]/40 hover:bg-[#F1EADF] text-[#29251F] text-xs font-semibold shadow-2xs active:scale-[0.99] transition-all"
             disabled={isLoading}
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24">
@@ -121,7 +130,7 @@ export default function LoginPage() {
           <Button
             onClick={() => handleOAuthLogin("microsoft")}
             variant="outline"
-            className="w-full justify-center gap-3 h-10 border-[#E8DFD1] bg-[#F1EADF]/40 hover:bg-[#F1EADF] text-[#29251F] text-xs font-semibold"
+            className="w-full justify-center gap-3 h-10 border-[#E8DFD1] bg-[#F1EADF]/40 hover:bg-[#F1EADF] text-[#29251F] text-xs font-semibold shadow-2xs active:scale-[0.99] transition-all"
             disabled={isLoading}
           >
             <svg className="h-4 w-4" viewBox="0 0 23 23">
@@ -157,7 +166,7 @@ export default function LoginPage() {
 
           <Button
             type="submit"
-            className="w-full h-10 text-xs font-semibold gap-1.5 bg-[#D97736] hover:bg-[#B95727] text-white"
+            className="w-full h-10 text-xs font-semibold gap-1.5 bg-primary hover:bg-primary-hover text-white shadow-2xs active:scale-[0.99] transition-all"
             disabled={isLoading}
           >
             <span>{isLoading ? "Signing in..." : "Send Magic Link"}</span>
@@ -170,7 +179,7 @@ export default function LoginPage() {
           <Lock size={12} className="text-[#477A58]" />
           <span>Zero-Knowledge Vault • OAuth 2.0 PKCE Protected</span>
         </div>
-      </div>
+      </CardSpotlight>
     </div>
   );
 }
