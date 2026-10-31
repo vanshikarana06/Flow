@@ -33,3 +33,4 @@ async def test_priority_detector_fallback():
         )
         assert result.priority == PriorityLevel.LOW
         assert result.urgency_score <= 0.3
+
