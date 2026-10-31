@@ -7,20 +7,40 @@ Write-Host " FLOW Model Gateway: Cloudflare Quick Tunnel for Ollama" -Foreground
 Write-Host "==============================================================================" -ForegroundColor Cyan
 Write-Host ""
 
-$cloudflared = Get-Command cloudflared -ErrorAction SilentlyContinue
+$cloudflaredCmd = Get-Command cloudflared -ErrorAction SilentlyContinue
+$cloudflaredBin = $null
 
-if (-not $cloudflared) {
+if ($cloudflaredCmd) {
+    $cloudflaredBin = $cloudflaredCmd.Source
+} elseif (Test-Path "C:\Program Files (x86)\cloudflared\cloudflared.exe") {
+    $cloudflaredBin = "C:\Program Files (x86)\cloudflared\cloudflared.exe"
+} elseif (Test-Path "C:\Program Files\cloudflared\cloudflared.exe") {
+    $cloudflaredBin = "C:\Program Files\cloudflared\cloudflared.exe"
+}
+
+if (-not $cloudflaredBin) {
     Write-Host "[!] cloudflared CLI was not detected on your PATH." -ForegroundColor Yellow
     Write-Host "Installing cloudflared via winget..." -ForegroundColor White
-    winget install --id Cloudflare.cloudflared -e --source winget
-    $cloudflared = Get-Command cloudflared -ErrorAction SilentlyContinue
-    if (-not $cloudflared) {
+    winget install --id Cloudflare.cloudflared -e --source winget --accept-source-agreements --accept-package-agreements
+    
+    if (Test-Path "C:\Program Files (x86)\cloudflared\cloudflared.exe") {
+        $cloudflaredBin = "C:\Program Files (x86)\cloudflared\cloudflared.exe"
+    } elseif (Test-Path "C:\Program Files\cloudflared\cloudflared.exe") {
+        $cloudflaredBin = "C:\Program Files\cloudflared\cloudflared.exe"
+    } else {
+        $cloudflaredCmd = Get-Command cloudflared -ErrorAction SilentlyContinue
+        if ($cloudflaredCmd) {
+            $cloudflaredBin = $cloudflaredCmd.Source
+        }
+    }
+
+    if (-not $cloudflaredBin) {
         Write-Host "[ERROR] Could not install cloudflared automatically. Download from: https://github.com/cloudflare/cloudflared/releases" -ForegroundColor Red
         return
     }
 }
 
-Write-Host "[OK] cloudflared CLI verified: $($cloudflared.Source)" -ForegroundColor Green
+Write-Host "[OK] cloudflared CLI verified: $cloudflaredBin" -ForegroundColor Green
 Write-Host ""
 Write-Host "Verifying local Ollama connectivity on http://localhost:11434..." -ForegroundColor White
 
@@ -40,5 +60,5 @@ Write-Host "Copy that URL and paste it into your Render Backend Dashboard as OLL
 Write-Host "==============================================================================" -ForegroundColor Cyan
 Write-Host ""
 
-& cloudflared tunnel --url http://localhost:11434
+& "$cloudflaredBin" tunnel --url http://localhost:11434
 
