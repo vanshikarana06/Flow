@@ -79,18 +79,22 @@ async def flow_exception_handler(request: Request, exc: FlowException):
         content=exc.detail,
     )
 
-# Include Routers under /api/v1
+# Include Routers under both /api/v1 (standard REST) and root / for resilience
 api_v1_prefix = "/api/v1"
-app.include_router(auth_router, prefix=api_v1_prefix)
-app.include_router(agents_router, prefix=api_v1_prefix)
-app.include_router(trust_router, prefix=api_v1_prefix)
-app.include_router(memory_router, prefix=api_v1_prefix)
-app.include_router(tasks_router, prefix=api_v1_prefix)
-app.include_router(calendar_router, prefix=api_v1_prefix)
-app.include_router(email_router, prefix=api_v1_prefix)
-app.include_router(dashboard_router, prefix=api_v1_prefix)
-app.include_router(notifications_router, prefix=api_v1_prefix)
-app.include_router(workflows_router, prefix=api_v1_prefix)
+for r in [
+    auth_router,
+    agents_router,
+    trust_router,
+    memory_router,
+    tasks_router,
+    calendar_router,
+    email_router,
+    dashboard_router,
+    notifications_router,
+    workflows_router,
+]:
+    app.include_router(r, prefix=api_v1_prefix)
+    app.include_router(r)  # Direct root route compatibility (e.g. /auth/login)
 
 # Include WebSocket Router
 app.include_router(websocket_router)

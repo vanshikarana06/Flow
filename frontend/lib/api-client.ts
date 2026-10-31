@@ -4,8 +4,16 @@
  * Handles automatic JWT attachment, response unnesting, and structured error propagation.
  */
 
-const rawBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
-const API_BASE_URL = rawBaseUrl.replace(/\/+$/, "");
+function getApiBaseUrl(): string {
+  let url = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1").trim().replace(/\/+$/, "");
+  // Automatically ensure /api/v1 is appended if user provides root host (e.g. https://flow-gj0q.onrender.com)
+  if (!url.endsWith("/api/v1")) {
+    url = `${url}/api/v1`;
+  }
+  return url;
+}
+
+const API_BASE_URL = getApiBaseUrl();
 
 export class ApiError extends Error {
   status: number;
