@@ -1,6 +1,12 @@
 import uuid
 from typing import Optional, Dict, Any
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict
+
+try:
+    import email_validator  # noqa: F401
+    from pydantic import EmailStr
+except (ImportError, ModuleNotFoundError):
+    EmailStr = str  # Resilient fallback if email-validator is not yet compiled in environment
 
 class UserPreferencesSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)

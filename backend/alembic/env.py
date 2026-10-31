@@ -56,6 +56,7 @@ async def run_async_migrations() -> None:
         connect_args={
             "statement_cache_size": 0,
             "prepared_statement_cache_size": 0,
+            "prepared_statement_name_func": lambda: "",
         },
     )
     async with connectable.connect() as connection:

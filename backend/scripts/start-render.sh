@@ -16,6 +16,9 @@ else
     echo "[WARNING] Alembic upgrade encountered an issue or database is already current. Proceeding to server boot."
 fi
 
+# Ensure critical pydantic email dependency is present
+python -c "import email_validator" 2>/dev/null || pip install --no-cache-dir "email-validator>=2.1.0"
+
 # 2. Boot Uvicorn with Production Configuration
 echo "Booting FastAPI Uvicorn server on 0.0.0.0:${PORT:-4000}..."
 exec uvicorn app.main:app \
