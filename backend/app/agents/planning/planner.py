@@ -62,19 +62,27 @@ class PlannerEngine:
         goal_text: str = ""
 
         if intent == AgentIntent.SEND_EMAIL:
-            recipient_email = None
-            recipient_name = None
-            if resolved_contact:
+            recipient_email = entities.get("recipient_email")
+            if not recipient_email and entities.get("target_recipient") and "@" in str(entities.get("target_recipient", "")):
+                recipient_email = entities["target_recipient"]
+
+            if recipient_email:
+                recipient_name = entities.get("attendee") or recipient_email.split("@")[0].capitalize()
+            elif resolved_contact:
                 recipient_email = resolved_contact.get("email")
                 recipient_name = resolved_contact.get("name")
-            elif entities.get("target_recipient") and "@" in entities.get("target_recipient", ""):
-                recipient_email = entities["target_recipient"]
-                recipient_name = recipient_email.split("@")[0].capitalize()
             else:
                 recipient_name = entities.get("target_recipient", "Contact")
                 recipient_email = f"{recipient_name.lower().replace(' ', '')}@flow.dev"
 
-            subject = entities.get("subject_hint") or "Update from FLOW"
+            topic = entities.get("topic")
+            subject = entities.get("subject_hint") or (f"Meeting: {topic.capitalize()}" if topic else "Update from FLOW")
+            
+            if topic:
+                body = f"Hi {recipient_name},\n\nI am reaching out regarding {topic}.\n\nPlease let me know if this works for you.\n\nBest regards,\nFLOW"
+            else:
+                body = f"Hi {recipient_name},\n\nHope this message finds you well.\n\nBest regards,\nFLOW"
+
             goal_text = f"Draft and dispatch approved email to {recipient_name} ({recipient_email})"
 
             # Step 1: Memory resolution (if contact needed resolving)
@@ -100,7 +108,7 @@ class PlannerEngine:
                         parameters={
                             "recipient_to": [recipient_email],
                             "subject": subject,
-                            "body": f"Hi {recipient_name},\n\nHope this message finds you well.\n\nBest regards,\nFLOW",
+                            "body": body,
                         },
                         requires_approval=False,
                         description=f"Stage new email draft to {recipient_email}",
@@ -114,7 +122,7 @@ class PlannerEngine:
                         step_id="step-3",
                         tool="email_tool",
                         action="send_approved_draft",
-                        parameters={"recipient_to": [recipient_email], "subject": subject},
+                        parameters={"recipient_to": [recipient_email], "subject": subject, "body": body},
                         requires_approval=True,
                         description=f"Submit email to Trust Approval Center before Google Apps Script dispatch",
                     )
@@ -165,17 +173,44 @@ class PlannerEngine:
                 )
 
         elif intent == AgentIntent.CREATE_EVENT:
-            attendee = resolved_contact.get("name") if resolved_contact else entities.get("attendee", "Participant")
-            goal_text = f"Schedule meeting with {attendee}"
+            recip_email = entities.get("recipient_email") or entities.get("target_recipient")
+            if not recip_email or "@" not in str(recip_email):
+                recip_email = resolved_contact.get("email") if resolved_contact else None
+
+            attendee = resolved_contact.get("name") if resolved_contact else entities.get("attendee")
+            if not attendee:
+                if recip_email and "@" in recip_email:
+                    attendee = recip_email.split("@")[0].capitalize()
+                else:
+                    attendee = "Team"
+            
+            if not recip_email:
+                recip_email = f"{attendee.lower().replace(' ', '')}@flow.dev"
+
+            time_hint = entities.get("time_hint") or "tomorrow morning"
+            topic = entities.get("topic")
+            
+            event_title = f"Meeting: {topic.capitalize()}" if topic else f"Meeting with {attendee}"
+            meet_subject = entities.get("subject_hint") or f"Meeting Invitation: {topic.capitalize() if topic else 'Sync'} ({time_hint})"
+            meet_body = (
+                f"Hi {attendee},\n\nI've scheduled a meeting on our calendar for {time_hint}"
+                + (f" regarding {topic}" if topic else "")
+                + f".\n\nPlease let me know if this slot works well for you.\n\nBest regards,\nFLOW"
+            )
+            prep_title = f"Prepare agenda and notes for {topic}" if topic else f"Prepare agenda and notes for {attendee} meeting"
+
+            goal_text = f"Coordinate {time_hint} meeting with {attendee} ({recip_email}): staged calendar event, workspace prep task, and invitation draft"
+            
+            # 1. Calendar Conflict Detection
             if self.registry.has_tool("calendar_tool"):
                 steps.append(
                     PlanStep(
                         step_id="step-1",
                         tool="calendar_tool",
                         action="detect_conflicts",
-                        parameters={"time_hint": entities.get("time_hint")},
+                        parameters={"time_hint": time_hint, "attendee": attendee},
                         requires_approval=False,
-                        description=f"Check calendar availability according to buffer minutes ({preferences.get('meeting_buffer_minutes', 15)}m)",
+                        description=f"Verify calendar availability and buffer minutes ({preferences.get('meeting_buffer_minutes', 15)}m)",
                     )
                 )
                 steps.append(
@@ -183,9 +218,53 @@ class PlannerEngine:
                         step_id="step-2",
                         tool="calendar_tool",
                         action="create_event",
-                        parameters={"title": f"Meeting with {attendee}", "time_hint": entities.get("time_hint")},
+                        parameters={"title": event_title, "time_hint": time_hint, "attendee": attendee, "recipient_email": recip_email},
                         requires_approval=True,
-                        description="Request human approval before creating calendar event",
+                        description=f"Stage calendar event: '{event_title}' ({time_hint})",
+                    )
+                )
+
+            # 2. Workspace Prep Task
+            if self.registry.has_tool("task_tool"):
+                steps.append(
+                    PlanStep(
+                        step_id="step-3",
+                        tool="task_tool",
+                        action="create_task",
+                        parameters={
+                            "title": prep_title,
+                            "priority": "MEDIUM",
+                            "time_hint": time_hint,
+                        },
+                        requires_approval=False,
+                        description=f"Create preparation task in workspace: '{prep_title}'",
+                    )
+                )
+
+            # 3. Notification Draft & Outbound Approval
+            if self.registry.has_tool("email_tool"):
+                steps.append(
+                    PlanStep(
+                        step_id="step-4",
+                        tool="email_tool",
+                        action="create_draft",
+                        parameters={
+                            "recipient_to": [recip_email],
+                            "subject": meet_subject,
+                            "body": meet_body,
+                        },
+                        requires_approval=False,
+                        description=f"Stage notification draft to {attendee} ({recip_email})",
+                    )
+                )
+                steps.append(
+                    PlanStep(
+                        step_id="step-5",
+                        tool="email_tool",
+                        action="send_approved_draft",
+                        parameters={"recipient_to": [recip_email], "subject": meet_subject, "body": meet_body},
+                        requires_approval=True,
+                        description=f"Submit email invitation to Trust Approval Center before dispatch",
                     )
                 )
 
@@ -271,7 +350,8 @@ class PlannerEngine:
             "2. Calendar event creation ('create_event') or rescheduling MUST have requires_approval=True.\n"
             "3. Task deletion ('delete_task') MUST have requires_approval=True.\n"
             "4. Read-only operations ('read_threads', 'query_memories', 'detect_conflicts') MUST have requires_approval=False.\n"
-            "Output strictly valid JSON matching PlanSchema."
+            "5. If an email address is provided in Extracted Entities (recipient_email or target_recipient), use that address in the parameters (recipient_to=[address]).\n"
+            "NEVER return an error JSON object. You MUST ALWAYS generate a valid PlanSchema containing populated goal, intent, and steps."
         )
 
         user_content = (

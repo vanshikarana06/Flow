@@ -39,7 +39,7 @@ class IntentClassifier:
     """
 
     PATTERNS = [
-        # Explicit Memory commands first to prevent sentence keywords hijacking
+        # Explicit Memory commands first
         (
             AgentIntent.SAVE_MEMORY,
             r"^\s*(?:please\s+)?(remember|save|note that|keep in mind|memorize)\b",
@@ -49,18 +49,28 @@ class IntentClassifier:
             r"\b(what did|who is|do you recall|what is the preference|tell me about|what do you know about)\b.*\b(preference|contact|person|notes?)\b",
         ),
 
-        # Calendar Scheduling
+        # Email - prioritize explicit email drafting / sending instructions
+        (
+            AgentIntent.READ_EMAIL,
+            r"^\s*(?:check|read|get|fetch|list|show)\b.*\b(emails?|inbox|messages?|threads?)\b",
+        ),
+        (
+            AgentIntent.SEND_EMAIL,
+            r"^\s*(?:please\s+)?(?:send|draft|write|compose|make|create|prep|prepare)\b.*\b(?:email|mail|draft|message)\b|[\w\.-]+@[\w\.-]+\.\w+|^\s*(?:email|mail)\b|\b(?:email|mail)\s+(?:a\s+)?draft\b",
+        ),
+
+        # Calendar Scheduling (typo-tolerant, supports "meating", "meet", "evening", etc.)
         (
             AgentIntent.CHECK_CONFLICTS,
             r"\b(check|detect|find|any)\b.*\b(conflicts?|overlaps?|busy|free time|availability)\b",
         ),
         (
             AgentIntent.RESCHEDULE_EVENT,
-            r"\b(reschedule|move|postpone|delay|shift|change time)\b.*\b(meeting|event|call|sync)?\b",
+            r"\b(reschedule|move|postpone|delay|shift|change time)\b.*\b(meet.*|meat.*|event.*|call.*|sync.*)?\b",
         ),
         (
             AgentIntent.CREATE_EVENT,
-            r"\b(schedule|book|set up|plan)\b.*\b(meeting|event|call|appointment|sync|calendar)\b",
+            r"\b(schedule|book|set up|plan|arrange|create|organize|stage|coordinate)\b.*\b(meet.*|meat.*|event.*|call.*|sync.*|appoint.*|session.*|discussion.*|slot.*|calendar.*|tomorrow|today|evening|morning|afternoon|\d{1,2}(?::\d{2})?\s*(?:am|pm))\b|\b(let'?s\s+meet|need\s+a\s+meeting|have\s+a\s+call)\b",
         ),
 
         # Tasks
@@ -75,16 +85,6 @@ class IntentClassifier:
         (
             AgentIntent.CREATE_TASK,
             r"\b(create|add|new|remind me to|make a)\b.*\b(task|todo|to-do|action item)\b",
-        ),
-
-        # Email
-        (
-            AgentIntent.READ_EMAIL,
-            r"\b(check|read|get|fetch|list|show)\b.*\b(emails?|inbox|messages?|threads?)\b",
-        ),
-        (
-            AgentIntent.SEND_EMAIL,
-            r"^\s*email\s+([a-zA-Z0-9_\s-]+)|\b(send|write|draft|shoot|compose)\b(?:\s+an?)?\s+(?:email|mail|message)\b",
         ),
     ]
 
@@ -147,24 +147,40 @@ class IntentClassifier:
     def _extract_entities(cls, intent: AgentIntent, prompt: str) -> Dict[str, Any]:
         entities: Dict[str, Any] = {"raw_prompt": prompt}
 
+        # Global entity extraction across prompt
+        email_match = re.search(r"[\w\.-]+@[\w\.-]+\.\w+", prompt)
+        if email_match:
+            entities["recipient_email"] = email_match.group(0).strip()
+            entities["target_recipient"] = email_match.group(0).strip()
+            raw_name = email_match.group(0).split("@")[0].replace(".", " ")
+            entities["attendee"] = re.sub(r"\d+", "", raw_name).title().strip() or "Attendee"
+
+        topic_match = re.search(r"\b(?:on\s+how\s+to|about\s+how\s+to|how\s+to|regarding|about|on|topic)\s+([^.,;\n]+)", prompt, re.IGNORECASE)
+        if topic_match:
+            entities["topic"] = topic_match.group(1).strip()
+            entities["subject_hint"] = f"Meeting: {entities['topic'].capitalize()}"
+
         if intent == AgentIntent.SEND_EMAIL:
-            recip_match = re.search(
-                r"(?:(?:to|email|mail)\s+)((?:my\s+)?[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+|my\s+[a-zA-Z-]+|[a-zA-Z-]+(?:\s+[a-zA-Z-]+)?)(?:\s+(?:regarding|about|saying|\.|$)|$)",
-                prompt,
-                re.IGNORECASE,
-            )
-            if recip_match:
-                entities["target_recipient"] = recip_match.group(1).strip()
+            if not entities.get("target_recipient"):
+                recip_match = re.search(
+                    r"(?:(?:to|email|mail)\s+)((?:my\s+)?[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+|my\s+[a-zA-Z-]+|[a-zA-Z-]+(?:\s+[a-zA-Z-]+)?)(?:\s+(?:regarding|about|saying|\.|\$)|\$)",
+                    prompt,
+                    re.IGNORECASE,
+                )
+                if recip_match:
+                    entities["target_recipient"] = recip_match.group(1).strip()
 
-            subj_match = re.search(r"\b(?:about|regarding|subject|saying)\s+(.*)$", prompt, re.IGNORECASE)
-            if subj_match:
-                entities["subject_hint"] = subj_match.group(1).strip()
-
+            if not entities.get("subject_hint"):
+                subj_match = re.search(r"\b(?:about|regarding|subject|saying)\s+(.*)$", prompt, re.IGNORECASE)
+                if subj_match:
+                    entities["subject_hint"] = subj_match.group(1).strip()
+                else:
+                    entities["subject_hint"] = "Update regarding discussion"
         elif intent in (AgentIntent.CREATE_EVENT, AgentIntent.RESCHEDULE_EVENT):
-            time_match = re.search(r"\b(?:at|for|on|tomorrow|next\s+\w+|today|\d{1,2}(?::\d{2})?\s*(?:am|pm))\b.*", prompt, re.IGNORECASE)
+            time_match = re.search(r"\b(?:tomorrow(?:\s+in\s+evening|\s+in\s+morning|\s+in\s+afternoon)?|today|tonight|evening|morning|afternoon|at\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?|\d{1,2}(?::\d{2})?\s*(?:am|pm))\b.*?", prompt, re.IGNORECASE)
             if time_match:
                 entities["time_hint"] = time_match.group(0).strip()
-            with_match = re.search(r"\bwith\s+([a-zA-Z\s]+?)(?:\s+(?:at|for|on|tomorrow)|\.|$)", prompt, re.IGNORECASE)
+            with_match = re.search(r"\b(?:with|for)\s+([a-zA-Z\s]+?)(?:\s+(?:at|for|on|tomorrow|in|\d)|\.|$)", prompt, re.IGNORECASE)
             if with_match:
                 entities["attendee"] = with_match.group(1).strip()
 

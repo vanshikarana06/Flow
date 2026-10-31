@@ -1,4 +1,5 @@
 import uuid
+import logging
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, Request, Header, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +11,7 @@ from app.email.drafts.schemas import CreateDraftRequest, DraftResponse
 from app.email.threads.schemas import ThreadDetailResponse, ThreadListItem
 from app.email.outbound.schemas import OutboundDeliveryResult
 
+logger = logging.getLogger("flow.email.router")
 router = APIRouter(prefix="/email", tags=["Self-Owned Email OS"])
 
 # -----------------------------------------------------------------------------
@@ -31,6 +33,7 @@ async def receive_resend_webhook(
         signature_header=svix_signature,
         svix_id=svix_id,
         svix_timestamp=svix_timestamp,
+        headers=dict(request.headers),
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -38,15 +41,52 @@ async def receive_resend_webhook(
         )
 
     raw_json = await request.json()
-    # Resolve target user from recipient domain / headers (default fallback to first user or system recipient)
-    # Target user resolution:
+    data = raw_json.get("data") if isinstance(raw_json.get("data"), dict) else raw_json
+    recipients = (data.get("to") or []) + (data.get("received_for") or [])
+    clean_recipients = [r.lower().strip() for r in recipients if isinstance(r, str)]
+
     from app.database.models.user import User
     from app.database.models.preference import Preference
-    from sqlalchemy import select
-    res = await db.execute(select(User).limit(1))
-    target_user = res.scalar_one_or_none()
+    from sqlalchemy import select, or_
+
+    target_user = None
+
+    # 1. Match full recipient email against registered users
+    if clean_recipients:
+        res = await db.execute(select(User).where(User.email.in_(clean_recipients)))
+        target_user = res.scalar_one_or_none()
+
+    # 2. Match recipient prefix (e.g. 'van' from van@aldeourku.resend.app against vanshurana1706@...)
+    if not target_user and clean_recipients:
+        for r in clean_recipients:
+            prefix = r.split("@")[0].strip()
+            if len(prefix) >= 3:
+                res = await db.execute(
+                    select(User).where(
+                        or_(
+                            User.email.ilike(f"{prefix}%"),
+                            User.full_name.ilike(f"%{prefix}%")
+                        )
+                    ).order_by(User.created_at.asc()).limit(1)
+                )
+                target_user = res.scalar_one_or_none()
+                if target_user:
+                    break
+
+    # 3. Match active registered human user (excluding default system placeholder)
     if not target_user:
-        # Auto-provision default primary user so inbound emails are never dropped
+        res = await db.execute(
+            select(User).where(User.email != "user@flow.dev").order_by(User.created_at.asc()).limit(1)
+        )
+        target_user = res.scalar_one_or_none()
+
+    # 4. Fallback to any user
+    if not target_user:
+        res = await db.execute(select(User).order_by(User.created_at.asc()).limit(1))
+        target_user = res.scalar_one_or_none()
+
+    if not target_user:
+        # Auto-provision primary user so inbound emails are never dropped
         target_user = User(
             email="user@flow.dev",
             full_name="FLOW Workspace Owner",
@@ -58,7 +98,16 @@ async def receive_resend_webhook(
         await db.commit()
         await db.refresh(target_user)
 
+    sender = data.get("from", "unknown")
+    subject = data.get("subject", "(No Subject)")
+    logger.info(f"[INBOUND EMAIL] Webhook verified: sender='{sender}', subject='{subject}', target='{target_user.email}'")
+    print(f"[FLOW EMAIL OS] Inbound email received: from='{sender}' | subject='{subject}' | target_user='{target_user.email}'", flush=True)
+
     result = await email_service.handle_inbound_webhook(raw_json, target_user.id)
+
+    logger.info(f"[INBOUND EMAIL] Stored thread_id={result.thread_id} for user={target_user.email}")
+    print(f"[FLOW EMAIL OS] Successfully saved thread {result.thread_id} in inbox for {target_user.email}", flush=True)
+
     return StandardResponse(data=result.model_dump())
 
 # -----------------------------------------------------------------------------

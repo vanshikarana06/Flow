@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   ShieldCheck, 
   Check, 
@@ -34,8 +34,12 @@ import { useApprovalStore } from "@/stores/use-approval-store";
 import { ApprovalItem } from "@/lib/types";
 
 export default function ApprovalsPage() {
-  const { approvals, approveAction, rejectAction, modifyAction, resetAll } = useApprovalStore();
+  const { approvals, approveAction, rejectAction, modifyAction, resetAll, fetchApprovals, isLoading } = useApprovalStore();
   const [modifyingItem, setModifyingItem] = useState<ApprovalItem | null>(null);
+
+  useEffect(() => {
+    fetchApprovals();
+  }, [fetchApprovals]);
 
   // Form states for structured modification (no raw JSON!)
   const [editSubject, setEditSubject] = useState("");
@@ -230,7 +234,7 @@ export default function ApprovalsPage() {
                             {item.diff.after.to}
                           </span>
                         </div>
-                        <span className="text-[10px] text-[#777064] font-mono">Outbound Gateway: Resend</span>
+                        <span className="text-[10px] text-[#777064] font-mono flex items-center gap-1">Outbound Gateway: <span className="text-[#3B7E50] font-semibold">Google Apps Script (Gmail)</span></span>
                       </div>
                       <div>
                         <span className="text-[#777064] text-[10px] font-mono">Subject:</span>

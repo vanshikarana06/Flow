@@ -51,15 +51,13 @@ class ApprovalRepository(BaseRepository[Approval]):
         new_status: ApprovalState,
         modified_payload: Optional[Dict[str, Any]] = None,
     ) -> Optional[Approval]:
-        values: Dict[str, Any] = {
-            "status": new_status,
-            "reviewed_at": datetime.now(timezone.utc),
-        }
+        approval = await self.get_by_id(approval_id)
+        if not approval:
+            return None
+        approval.status = new_status
+        approval.reviewed_at = datetime.now(timezone.utc)
         if modified_payload is not None:
-            values["modified_payload"] = modified_payload
-
-        await self.session.execute(
-            update(Approval).where(Approval.id == approval_id).values(**values)
-        )
-        return await self.get_by_id(approval_id)
+            approval.modified_payload = modified_payload
+        await self.session.flush()
+        return approval
 

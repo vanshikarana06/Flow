@@ -5,15 +5,19 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, field_validator
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=(".env", "backend/.env", "../.env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
     # Application
     APP_NAME: str = "FLOW_BACKEND"
-    NODE_ENV: str = "production"
+    NODE_ENV: str = "development"
     PORT: int = 4000
-    APP_URL: str = "https://api.flow.dev"
-    FRONTEND_URL: str = "https://app.flow.dev"
-    CORS_ORIGINS: Union[str, List[str]] = ["https://app.flow.dev", "http://localhost:3000"]
+    APP_URL: str = "http://localhost:4000"
+    FRONTEND_URL: str = "http://localhost:3000"
+    CORS_ORIGINS: Union[str, List[str]] = ["http://localhost:3000", "http://127.0.0.1:3000", "https://app.flow.dev"]
 
     @field_validator("CORS_ORIGINS", mode="after")
     @classmethod

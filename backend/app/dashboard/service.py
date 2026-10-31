@@ -58,11 +58,7 @@ class DashboardService:
 
         # 1. Emails: Fetch recent threads and unread count
         threads = await self.email_repo.list_threads(user_id=user_id, limit=10)
-        unread_stmt = select(func.count(EmailThread.id)).where(
-            EmailThread.user_id == user_id,
-            EmailThread.is_read == False,
-        )
-        unread_emails_count = (await self.db.execute(unread_stmt)).scalar() or 0
+        unread_emails_count = sum(1 for t in threads if not t.is_read)
         thread_items = [
             ThreadListItem(
                 id=t.id,
@@ -211,14 +207,23 @@ class DashboardService:
 
     async def get_inbox_summary(self, user_id: uuid.UUID, limit: int = 10) -> InboxSummaryResponse:
         threads = await self.email_repo.list_threads(user_id=user_id, limit=limit)
-        
-        total_stmt = select(func.count(EmailThread.id)).where(EmailThread.user_id == user_id)
-        unread_stmt = select(func.count(EmailThread.id)).where(
-            EmailThread.user_id == user_id,
-            EmailThread.is_read == False,
-        )
-        total_count = (await self.db.execute(total_stmt)).scalar() or 0
-        unread_count = (await self.db.execute(unread_stmt)).scalar() or 0
+        try:
+            total_stmt = select(func.count(EmailThread.id)).where(EmailThread.user_id == user_id)
+            total_res = await self.db.execute(total_stmt)
+            total_count = total_res.scalar()
+            if total_count is None:
+                total_count = len(threads)
+
+            unread_stmt = select(func.count(EmailThread.id)).where(
+                and_(EmailThread.user_id == user_id, EmailThread.is_read.is_(False))
+            )
+            unread_res = await self.db.execute(unread_stmt)
+            unread_count = unread_res.scalar()
+            if unread_count is None:
+                unread_count = sum(1 for t in threads if not t.is_read)
+        except Exception:
+            total_count = len(threads)
+            unread_count = sum(1 for t in threads if not t.is_read)
 
         items = [
             ThreadListItem(

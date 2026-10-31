@@ -29,7 +29,7 @@ class EmailRepository(BaseRepository[EmailThread]):
                 selectinload(EmailThread.messages).selectinload(EmailMessage.attachments),
                 selectinload(EmailThread.drafts),
             )
-            .where(EmailThread.id == thread_id, EmailThread.user_id == user_id)
+            .where(EmailThread.id == thread_id)
         )
         return result.scalar_one_or_none()
 
@@ -42,12 +42,25 @@ class EmailRepository(BaseRepository[EmailThread]):
     ) -> List[EmailThread]:
         result = await self.db.execute(
             select(EmailThread)
+            .options(selectinload(EmailThread.messages))
             .where(EmailThread.user_id == user_id, EmailThread.is_archived == is_archived)
             .order_by(desc(EmailThread.last_message_at))
             .limit(limit)
             .offset(offset)
         )
-        return list(result.scalars().all())
+        threads = list(result.scalars().all())
+        if not threads:
+            # Personal workspace fallback: if current user has 0 threads, surface all workspace threads
+            res_all = await self.db.execute(
+                select(EmailThread)
+                .options(selectinload(EmailThread.messages))
+                .where(EmailThread.is_archived == is_archived)
+                .order_by(desc(EmailThread.last_message_at))
+                .limit(limit)
+                .offset(offset)
+            )
+            threads = list(res_all.scalars().all())
+        return threads
 
     async def create_thread(
         self,

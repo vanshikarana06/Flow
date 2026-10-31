@@ -7,7 +7,7 @@ class ApprovalStateMachine:
         ApprovalState.DRAFT: {ApprovalState.PENDING, ApprovalState.REJECTED},
         ApprovalState.PENDING: {ApprovalState.APPROVED, ApprovalState.MODIFIED, ApprovalState.REJECTED},
         ApprovalState.MODIFIED: {ApprovalState.PENDING, ApprovalState.APPROVED, ApprovalState.REJECTED},
-        ApprovalState.APPROVED: {ApprovalState.EXECUTED, ApprovalState.REJECTED},
+        ApprovalState.APPROVED: {ApprovalState.APPROVED, ApprovalState.EXECUTED, ApprovalState.REJECTED},
         ApprovalState.REJECTED: set(),  # Terminal state
         ApprovalState.EXECUTED: {ApprovalState.VERIFIED},
         ApprovalState.VERIFIED: set(),  # Terminal state

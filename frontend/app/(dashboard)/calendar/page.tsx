@@ -1,21 +1,19 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Calendar as CalendarIcon, 
   ChevronLeft, 
   ChevronRight, 
+  Plus, 
   Sparkles, 
   AlertTriangle, 
   Clock, 
-  Zap, 
-  Users, 
-  CheckCircle2, 
-  ArrowRight, 
-  ShieldAlert, 
-  X,
-  Plus,
-  Check
+  ArrowRight,
+  Trash2,
+  CheckCircle2,
+  RefreshCw,
+  Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,43 +23,237 @@ import { FadeIn } from "@/components/ui/motion-primitives";
 import { BorderBeam } from "@/components/ui/border-beam";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { triggerConfetti } from "@/lib/confetti";
-import { mockCalendarEvents } from "@/lib/mock-data";
 import { useCopilotStore } from "@/stores/use-copilot-store";
-import { useApprovalStore } from "@/stores/use-approval-store";
+import { apiClient } from "@/lib/api-client";
+
+interface CalendarEventItem {
+  id: string;
+  title: string;
+  description?: string;
+  start_time: string;
+  end_time: string;
+  is_focus_block: boolean;
+}
 
 export default function CalendarPage() {
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [viewMode, setViewMode] = useState<"week" | "month" | "day">("week");
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [events, setEvents] = useState<CalendarEventItem[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEventItem | null>(null);
+  
+  // Create Modal State
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newSlotTime, setNewSlotTime] = useState("11:00 AM");
+  const [targetSlotDate, setTargetSlotDate] = useState<Date>(new Date());
+  const [targetSlotTime, setTargetSlotTime] = useState("10:00 AM");
+  const [blockTitle, setBlockTitle] = useState("Deep Work: Focus Block");
+  const [blockDescription, setBlockDescription] = useState("");
+  const [blockDuration, setBlockDuration] = useState("60");
+  const [isFocusBlock, setIsFocusBlock] = useState(true);
+
+  const [isLiveConnected, setIsLiveConnected] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [conflictSummary, setConflictSummary] = useState<string | null>(null);
+  const [hasLiveConflict, setHasLiveConflict] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
   const { toggleOpen, submitPrompt } = useCopilotStore();
-  const { approvals, approveAction } = useApprovalStore();
 
   const timeSlots = [
-    "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
-    "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM"
+    "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
+    "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM"
   ];
 
-  const handleAuthorizeReschedule = () => {
-    approveAction("appr_101");
-    setShowPreviewModal(false);
-    triggerConfetti({
-      particleCount: 45,
-      spread: 60,
-      origin: { y: 0.65 },
-      colors: ["#F28C38", "#477A58"],
+  // Helper to get 7 days of the active week (Monday through Sunday)
+  const getDaysOfWeek = (base: Date) => {
+    const current = new Date(base);
+    const day = current.getDay();
+    const diff = current.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(current.setDate(diff));
+    monday.setHours(0, 0, 0, 0);
+
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const nextDay = new Date(monday);
+      nextDay.setDate(monday.getDate() + i);
+      days.push(nextDay);
+    }
+    return days;
+  };
+
+  const weekDays = getDaysOfWeek(currentDate);
+
+  const isToday = (d: Date) => {
+    const now = new Date();
+    return d.getDate() === now.getDate() &&
+      d.getMonth() === now.getMonth() &&
+      d.getFullYear() === now.getFullYear();
+  };
+
+  const isSameDay = (dateStr: string, d: Date) => {
+    if (!dateStr) return false;
+    const evtDate = new Date(dateStr);
+    return evtDate.getDate() === d.getDate() &&
+      evtDate.getMonth() === d.getMonth() &&
+      evtDate.getFullYear() === d.getFullYear();
+  };
+
+  const parseSlotHour = (timeStr: string) => {
+    const [hourPart, modifier] = timeStr.split(" ");
+    let hours = parseInt(hourPart.split(":")[0], 10);
+    if (modifier === "PM" && hours !== 12) hours += 12;
+    if (modifier === "AM" && hours === 12) hours = 0;
+    return hours;
+  };
+
+  const getEventsForDayAndSlot = (day: Date, timeSlot: string) => {
+    const slotHour = parseSlotHour(timeSlot);
+    return events.filter((evt) => {
+      if (!isSameDay(evt.start_time, day)) return false;
+      const d = new Date(evt.start_time);
+      return d.getHours() === slotHour;
     });
+  };
+
+  // Fetch events for active date range
+  const loadCalendarData = async () => {
+    try {
+      setIsLoading(true);
+      const startRange = new Date(currentDate);
+      startRange.setDate(startRange.getDate() - 30);
+      startRange.setHours(0, 0, 0, 0);
+
+      const endRange = new Date(currentDate);
+      endRange.setDate(endRange.getDate() + 30);
+      endRange.setHours(23, 59, 59, 999);
+
+      const startIso = startRange.toISOString();
+      const endIso = endRange.toISOString();
+
+      const eventsRes = await apiClient.get<any[]>("/calendar/events", {
+        params: { start_time: startIso, end_time: endIso },
+      });
+
+      if (Array.isArray(eventsRes)) {
+        setIsLiveConnected(true);
+        setEvents(eventsRes.map((e) => ({
+          id: String(e.id),
+          title: e.title,
+          description: e.description,
+          start_time: e.start_time,
+          end_time: e.end_time,
+          is_focus_block: Boolean(e.is_focus_block),
+        })));
+      } else {
+        setEvents([]);
+      }
+
+      // Check conflicts
+      const conflictRes = await apiClient.get<any>("/calendar/conflicts", {
+        params: { start_time: startIso, end_time: endIso },
+      });
+
+      if (conflictRes) {
+        setHasLiveConflict(Boolean(conflictRes.has_conflict));
+        setConflictSummary(conflictRes.summary || null);
+      }
+    } catch (err) {
+      console.warn("Backend calendar endpoint error:", err);
+      setIsLiveConnected(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCalendarData();
+  }, [currentDate]);
+
+  // Navigate dates
+  const handleNavigate = (direction: -1 | 1) => {
+    const next = new Date(currentDate);
+    if (viewMode === "day") {
+      next.setDate(next.getDate() + direction);
+    } else if (viewMode === "week") {
+      next.setDate(next.getDate() + direction * 7);
+    } else {
+      next.setMonth(next.getMonth() + direction);
+    }
+    setCurrentDate(next);
+  };
+
+  const handleResetToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  const openCreateModal = (day: Date, timeSlot: string) => {
+    setTargetSlotDate(day);
+    setTargetSlotTime(timeSlot);
+    setBlockTitle("Deep Work: Focus Session");
+    setBlockDescription("Protected time registered through FLOW Workspace Calendar");
+    setIsFocusBlock(true);
+    setShowCreateModal(true);
+  };
+
+  // Save new event
+  const handleSaveEvent = async () => {
+    setShowCreateModal(false);
+
+    try {
+      const slotHour = parseSlotHour(targetSlotTime);
+      const start = new Date(targetSlotDate);
+      start.setHours(slotHour, 0, 0, 0);
+
+      const durationMin = parseInt(blockDuration, 10) || 60;
+      const end = new Date(start.getTime() + durationMin * 60000);
+
+      await apiClient.post("/calendar/events", {
+        title: blockTitle || "Focus Block",
+        description: blockDescription || "Scheduled event",
+        start_time: start.toISOString(),
+        end_time: end.toISOString(),
+        is_focus_block: isFocusBlock,
+      });
+
+      setToastMessage(`Scheduled "${blockTitle}" for ${start.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`);
+      triggerConfetti({ particleCount: 35, spread: 50, origin: { y: 0.65 } });
+      setTimeout(() => setToastMessage(null), 3500);
+
+      loadCalendarData();
+    } catch (err) {
+      console.warn("Could not persist event to backend:", err);
+    }
+  };
+
+  // Delete event
+  const handleDeleteEvent = async (eventId: string) => {
+    setSelectedEvent(null);
+    try {
+      await apiClient.delete(`/calendar/events/${eventId}`);
+      setToastMessage("Event removed from calendar");
+      setEvents((prev) => prev.filter((e) => e.id !== eventId));
+      setTimeout(() => setToastMessage(null), 3000);
+    } catch (err) {
+      console.warn("Could not delete event:", err);
+    }
   };
 
   return (
     <FadeIn className="space-y-5">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 p-3 rounded-xl border border-[#CDE3D5] bg-[#EDF5F0] text-[#477A58] text-xs font-semibold shadow-elevated animate-in slide-in-from-bottom duration-200">
+          <CheckCircle2 size={16} />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Calendar Header Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-3 border-b border-[#E8DFD1]">
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#29251F]">Calendar & Schedule</h1>
             <Badge variant="verified" className="text-[10px]">
-              Microsoft Graph Synced
+              {isLiveConnected ? "● Live Graph Connected" : "Calendar Runtime"}
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-[#777064] mt-0.5">
@@ -70,12 +262,30 @@ export default function CalendarPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          {/* Navigation Controls */}
           <div className="flex items-center gap-1 border border-[#E8DFD1] rounded-lg p-0.5 bg-[#FFFCF6] shadow-2xs">
-            <button className="p-1 text-[#777064] hover:text-[#29251F] rounded hover:bg-[#F1EADF] transition-colors">
+            <button
+              onClick={() => handleNavigate(-1)}
+              className="p-1 text-[#777064] hover:text-[#29251F] rounded hover:bg-[#F1EADF] transition-colors"
+              title="Previous"
+            >
               <ChevronLeft size={15} />
             </button>
-            <span className="px-2.5 text-xs font-semibold text-[#29251F]">October 26 - 31, 2026</span>
-            <button className="p-1 text-[#777064] hover:text-[#29251F] rounded hover:bg-[#F1EADF] transition-colors">
+            <button
+              onClick={handleResetToday}
+              className="px-2.5 text-xs font-semibold text-[#29251F] hover:text-primary transition-colors"
+            >
+              {viewMode === "day"
+                ? currentDate.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric", year: "numeric" })
+                : viewMode === "month"
+                ? currentDate.toLocaleDateString([], { month: "long", year: "numeric" })
+                : `${weekDays[0].toLocaleDateString([], { month: "short", day: "numeric" })} – ${weekDays[6].toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}`}
+            </button>
+            <button
+              onClick={() => handleNavigate(1)}
+              className="p-1 text-[#777064] hover:text-[#29251F] rounded hover:bg-[#F1EADF] transition-colors"
+              title="Next"
+            >
               <ChevronRight size={15} />
             </button>
           </div>
@@ -109,261 +319,192 @@ export default function CalendarPage() {
           </div>
 
           <ShimmerButton
-            onClick={() => setShowPreviewModal(true)}
+            onClick={() => openCreateModal(new Date(), "10:00 AM")}
             shimmerColor="rgba(255, 255, 255, 0.45)"
             background="#D97736"
             className="h-8 gap-1.5 px-3"
           >
-            <Sparkles size={13} />
-            <span>AI Scheduling Preview</span>
+            <Plus size={13} />
+            <span>Block Focus Time</span>
           </ShimmerButton>
         </div>
       </div>
 
-      {/* Reclaim-Style Conflict Radar Bar */}
-      <div className="relative overflow-hidden p-3.5 rounded-xl border border-[#F9E2BE] bg-[#FEF8ED] flex flex-wrap items-center justify-between gap-3 text-xs shadow-2xs">
-        <BorderBeam size={160} duration={10} colorFrom="#D97736" colorTo="#C58A32" />
-        <div className="flex items-center gap-2 text-[#C58A32] relative z-10">
-          <AlertTriangle size={15} className="shrink-0" />
-          <span>
-            <strong>Schedule Collision:</strong> Sprint Demo Review overlaps with 1:1 Aditya at 02:00 PM today.
-          </span>
+      {/* Conflict Radar Bar (Only shown if a live conflict is detected) */}
+      {hasLiveConflict && conflictSummary && (
+        <div className="relative overflow-hidden p-3.5 rounded-xl border border-[#F9E2BE] bg-[#FEF8ED] flex flex-wrap items-center justify-between gap-3 text-xs shadow-2xs">
+          <BorderBeam size={160} duration={10} colorFrom="#D97736" colorTo="#C58A32" />
+          <div className="flex items-center gap-2 text-[#C58A32] relative z-10">
+            <AlertTriangle size={15} className="shrink-0" />
+            <span>
+              <strong>Schedule Collision:</strong> {conflictSummary}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 relative z-10">
+            <Button
+              onClick={() => {
+                toggleOpen();
+                submitPrompt(`Resolve calendar conflict: ${conflictSummary}`);
+              }}
+              size="sm"
+              className="h-7 text-xs font-semibold bg-[#D97736] hover:bg-[#B95727] text-white gap-1"
+            >
+              <span>Auto-Resolve With Copilot</span>
+              <ArrowRight size={12} />
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-2 relative z-10">
-          <Button
-            onClick={() => setShowPreviewModal(true)}
-            size="sm"
-            className="h-7 text-xs font-semibold bg-[#D97736] hover:bg-[#B95727] text-white gap-1"
-          >
-            <span>Preview Proposal (Reclaim Mode)</span>
-            <ArrowRight size={12} />
-          </Button>
-        </div>
-      </div>
+      )}
 
-      {/* Conditional View Rendering */}
+      {/* VIEW: WEEK GRID */}
       {viewMode === "week" && (
         <Card className="overflow-hidden border-[#E8DFD1] bg-[#FFFCF6] shadow-soft">
-          <div className="grid grid-cols-6 border-b border-[#E8DFD1] bg-[#F8F4EC]/80 text-xs font-semibold text-[#777064]">
+          {/* Week Header */}
+          <div className="grid grid-cols-8 border-b border-[#E8DFD1] bg-[#F8F4EC]/80 text-xs font-semibold text-[#777064]">
             <div className="p-2.5 border-r border-[#E8DFD1] text-center text-[10px]">TIME</div>
-            <div className="p-2.5 border-r border-[#E8DFD1] text-center text-[11px]">MON 27</div>
-            <div className="p-2.5 border-r border-[#E8DFD1] text-center text-[11px]">TUE 28</div>
-            <div className="p-2.5 border-r border-[#E8DFD1] text-center text-[11px]">WED 29</div>
-            <div className="p-2.5 border-r border-[#E8DFD1] text-center text-[11px]">THU 30</div>
-            <div className="p-2.5 text-center bg-[#FCEEE5]/60 text-[#B95727] border-l border-[#F7D2BC] font-bold text-[11px]">
-              FRI 31 (TODAY)
-            </div>
-          </div>
-
-          <div className="divide-y divide-[#E8DFD1]/60">
-            {timeSlots.map((time) => {
-              const is9AM = time === "09:00 AM";
-              const is10AM = time === "10:00 AM";
-              const is2PM = time === "02:00 PM";
-              const is4PM = time === "04:00 PM";
-
+            {weekDays.map((d, i) => {
+              const active = isToday(d);
               return (
-                <div key={time} className="grid grid-cols-6 min-h-[72px] text-xs">
-                  {/* Time Label */}
-                  <div className="p-2.5 border-r border-[#E8DFD1] text-[#777064] font-mono text-[10px]">
-                    {time}
+                <div
+                  key={i}
+                  className={`p-2.5 text-center border-r border-[#E8DFD1] last:border-r-0 ${
+                    active ? "bg-[#FCEEE5]/80 text-primary font-bold" : ""
+                  }`}
+                >
+                  <div className="text-[10px] uppercase font-mono tracking-wider">
+                    {d.toLocaleDateString([], { weekday: "short" })}
                   </div>
-
-                  {/* Mon - Thu */}
-                  <div className="p-1 border-r border-[#E8DFD1]/50 bg-[#FFFCF6]">
-                    {is9AM && (
-                      <div className="p-1.5 rounded bg-[#F8F4EC] border border-[#E8DFD1] text-[10px] text-[#777064]">
-                        Standup
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-1 border-r border-[#E8DFD1]/50 bg-[#FFFCF6]">
-                    {is10AM && (
-                      <div className="p-1.5 rounded bg-[#F8F4EC] border border-[#E8DFD1] text-[10px] text-[#777064]">
-                        Architecture Sync
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-1 border-r border-[#E8DFD1]/50 bg-[#FFFCF6]">
-                    {is2PM && (
-                      <div className="p-1.5 rounded bg-[#F8F4EC] border border-[#E8DFD1] text-[10px] text-[#777064]">
-                        Sprint Retro
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-1 border-r border-[#E8DFD1]/50 bg-[#FFFCF6]">
-                    {is10AM && (
-                      <div className="p-1.5 rounded bg-[#F8F4EC] border border-[#E8DFD1] text-[10px] text-[#777064]">
-                        Product Sync
-                      </div>
-                    )}
-                  </div>
-
-                  {/* FRIDAY (TODAY) */}
-                  <div 
-                    onClick={() => {
-                      if (!is9AM && !is10AM && !is2PM && !is4PM) {
-                        setNewSlotTime(time);
-                        setShowCreateModal(true);
-                      }
-                    }}
-                    className="p-1 bg-[#FCEEE5]/20 border-l border-[#F7D2BC] relative group cursor-pointer"
-                  >
-                    {is9AM && (
-                      <div className="p-2 rounded-lg bg-[#EDF5F0] border border-[#CDE3D5] text-[#477A58] text-[11px] font-medium shadow-2xs">
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold text-[#29251F]">Team Standup</span>
-                          <CheckCircle2 size={11} className="text-[#477A58]" />
-                        </div>
-                        <span className="text-[9px] text-[#777064] font-mono">09:00 - 09:30 AM</span>
-                      </div>
-                    )}
-
-                    {is10AM && (
-                      <div className="p-2 rounded-lg bg-[#F1EADF] border border-[#E8DFD1] text-[#29251F] text-[11px] shadow-2xs">
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold">Deep Work: Architecture</span>
-                          <Badge variant="outline" className="text-[8px] border-[#D97736]/30 text-[#D97736]">Focus</Badge>
-                        </div>
-                        <span className="text-[9px] text-[#777064] font-mono">10:00 - 12:00 PM</span>
-                      </div>
-                    )}
-
-                    {is2PM && (
-                      <div className="p-2 rounded-lg bg-[#FDEDEB] border border-[#F5C2BC] text-[#C65345] text-[11px] shadow-2xs animate-pulse">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold flex items-center gap-1">
-                            <AlertTriangle size={11} /> ⚠️ 2:00 PM Overlap
-                          </span>
-                          <Badge variant="destructive" className="text-[8px]">Conflict</Badge>
-                        </div>
-                        <p className="text-[10px] text-[#29251F] mt-0.5">Partner Sync vs 1:1 Aditya</p>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShowPreviewModal(true);
-                          }}
-                          className="text-[9px] text-[#D97736] font-semibold underline mt-1"
-                        >
-                          Inspect Reschedule Proposal ➔
-                        </button>
-                      </div>
-                    )}
-
-                    {is4PM && (
-                      <div className="p-2 rounded-lg bg-[#FEF8ED] border border-dashed border-[#F9E2BE] text-[#C58A32] text-[11px]">
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold text-[#29251F]">1:1 Aditya (Proposed Slot)</span>
-                          <Badge variant="warning" className="text-[8px]">Awaiting Sign-off</Badge>
-                        </div>
-                        <span className="text-[9px] text-[#777064] font-mono">04:00 - 04:30 PM • 0 Conflicts</span>
-                      </div>
-                    )}
-
-                    {/* Hover Add Affordance */}
-                    {!is9AM && !is10AM && !is2PM && !is4PM && (
-                      <div className="h-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-[10px] text-primary flex items-center gap-1 bg-white/80 px-2 py-0.5 rounded border border-primary/20">
-                          <Plus size={10} /> Block Time
-                        </span>
-                      </div>
-                    )}
+                  <div className={`text-xs mt-0.5 ${active ? "text-primary" : "text-[#29251F]"}`}>
+                    {d.getDate()}
                   </div>
                 </div>
               );
             })}
           </div>
+
+          {/* Time Slots Rows */}
+          <div className="divide-y divide-[#E8DFD1]/60">
+            {timeSlots.map((time) => (
+              <div key={time} className="grid grid-cols-8 min-h-[60px] text-xs">
+                {/* Time Slot Label */}
+                <div className="p-2 border-r border-[#E8DFD1] text-[#777064] font-mono text-[10px] flex items-center justify-center">
+                  {time}
+                </div>
+
+                {/* 7 Days Columns */}
+                {weekDays.map((day, dayIdx) => {
+                  const slotEvents = getEventsForDayAndSlot(day, time);
+                  const active = isToday(day);
+
+                  return (
+                    <div
+                      key={dayIdx}
+                      className={`p-1 border-r border-[#E8DFD1]/50 last:border-r-0 relative group transition-colors ${
+                        active ? "bg-[#FDFBF7]" : "bg-[#FFFCF6] hover:bg-[#F8F4EC]/30"
+                      }`}
+                    >
+                      {slotEvents.length > 0 ? (
+                        slotEvents.map((evt) => (
+                          <div
+                            key={evt.id}
+                            onClick={() => setSelectedEvent(evt)}
+                            className={`p-1.5 rounded-lg border shadow-2xs space-y-0.5 cursor-pointer hover:shadow-soft transition-all ${
+                              evt.is_focus_block
+                                ? "border-[#D0C4B2] bg-[#F8F4EC] text-[#29251F] hover:border-primary"
+                                : "border-[#CDE3D5] bg-[#EDF5F0] text-[#477A58] hover:border-[#477A58]"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="font-semibold text-[11px] truncate">{evt.title}</span>
+                              <Badge variant="outline" className="text-[8px] px-1 py-0 shrink-0">
+                                {evt.is_focus_block ? "Focus" : "Event"}
+                              </Badge>
+                            </div>
+                            {evt.description && (
+                              <p className="text-[9px] text-[#777064] truncate">{evt.description}</p>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <div
+                          onClick={() => openCreateModal(day, time)}
+                          className="h-full min-h-[44px] rounded hover:bg-[#F1EADF]/40 cursor-pointer flex items-center justify-center text-[10px] text-transparent group-hover:text-[#777064] transition-all"
+                        >
+                          + Add
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </Card>
       )}
 
-      {/* Day Mode (Detailed Chronological Single Day) */}
+      {/* VIEW: DAY VIEW */}
       {viewMode === "day" && (
         <Card className="p-5 border-[#E8DFD1] bg-[#FFFCF6] shadow-soft space-y-4">
           <div className="flex items-center justify-between border-b border-[#E8DFD1] pb-3">
             <div>
-              <h3 className="text-base font-bold text-[#29251F]">Friday, October 31, 2026</h3>
-              <p className="text-xs text-[#777064]">Full day agenda with Microsoft Graph auto-block protections</p>
+              <h2 className="text-base font-bold text-[#29251F]">
+                {currentDate.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+              </h2>
+              <p className="text-xs text-[#777064]">Detailed hourly timeline and schedule</p>
             </div>
-            <Badge variant="outline" className="border-primary text-primary text-xs">
-              4 Events Scheduled
-            </Badge>
+            {isToday(currentDate) && (
+              <Badge variant="verified" className="text-[10px]">Today</Badge>
+            )}
           </div>
 
-          <div className="space-y-3">
-            <div className="p-3.5 rounded-xl border border-[#CDE3D5] bg-[#EDF5F0]/50 flex items-center justify-between text-xs">
-              <div>
-                <span className="font-mono text-[10px] text-[#477A58] font-bold">09:00 AM - 09:30 AM</span>
-                <h4 className="font-semibold text-[#29251F] text-sm mt-0.5">Team Standup & Daily Alignment</h4>
-                <p className="text-[11px] text-[#777064]">Aditya Sharma, Nikhil Bhardwaj, Vanshika Rana</p>
-              </div>
-              <Badge variant="verified" className="text-[10px]">Completed ✓</Badge>
-            </div>
+          <div className="divide-y divide-[#E8DFD1]/60">
+            {timeSlots.map((time) => {
+              const slotEvents = getEventsForDayAndSlot(currentDate, time);
 
-            <div className="p-3.5 rounded-xl border border-[#E8DFD1] bg-[#F1EADF]/40 flex items-center justify-between text-xs">
-              <div>
-                <span className="font-mono text-[10px] text-primary font-bold">10:00 AM - 12:00 PM</span>
-                <h4 className="font-semibold text-[#29251F] text-sm mt-0.5">Deep Work: Frontend Architecture</h4>
-                <p className="text-[11px] text-[#777064]">Protected focus block • Notifications muted</p>
-              </div>
-              <Badge variant="outline" className="text-[10px] border-primary text-primary">Focus Block</Badge>
-            </div>
-
-            <div className="p-3.5 rounded-xl border border-[#F5C2BC] bg-[#FDEDEB] flex items-center justify-between text-xs">
-              <div>
-                <span className="font-mono text-[10px] text-[#C65345] font-bold">02:00 PM - 03:00 PM</span>
-                <h4 className="font-bold text-[#C65345] text-sm mt-0.5">Sprint Demo Review (Conflict with 1:1 Aditya)</h4>
-                <p className="text-[11px] text-[#777064]">Overlapping attendees detected</p>
-              </div>
-              <Button
-                size="sm"
-                onClick={() => setShowPreviewModal(true)}
-                className="h-7 text-xs bg-[#C65345] hover:bg-[#A84337] text-white"
-              >
-                Resolve
-              </Button>
-            </div>
-
-            <div className="p-3.5 rounded-xl border border-dashed border-[#F9E2BE] bg-[#FEF8ED] flex items-center justify-between text-xs">
-              <div>
-                <span className="font-mono text-[10px] text-[#C58A32] font-bold">04:00 PM - 04:30 PM</span>
-                <h4 className="font-semibold text-[#29251F] text-sm mt-0.5">1:1 Aditya Review (Proposed Reschedule Slot)</h4>
-                <p className="text-[11px] text-[#777064]">Staged in Approval Center (#appr_101)</p>
-              </div>
-              <Badge variant="warning" className="text-[10px]">Awaiting Sign-off</Badge>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Month Mode (31-Day Grid) */}
-      {viewMode === "month" && (
-        <Card className="p-4 border-[#E8DFD1] bg-[#FFFCF6] shadow-soft">
-          <div className="grid grid-cols-7 gap-1 text-center font-semibold text-xs text-[#777064] pb-2 border-b border-[#E8DFD1]">
-            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-          </div>
-          <div className="grid grid-cols-7 gap-1 pt-2">
-            {Array.from({ length: 31 }, (_, i) => {
-              const day = i + 1;
-              const isToday = day === 31;
               return (
-                <div
-                  key={day}
-                  className={`min-h-[64px] p-1.5 rounded-lg border text-left text-xs transition-colors ${
-                    isToday
-                      ? "border-primary bg-[#FCEEE5]/40 font-bold"
-                      : "border-[#E8DFD1]/50 bg-[#FFFCF6] hover:bg-[#F8F4EC]"
-                  }`}
-                >
-                  <span className={`text-[10px] font-mono ${isToday ? "text-primary font-bold" : "text-[#777064]"}`}>
-                    {day}
-                  </span>
-                  {isToday && (
-                    <div className="mt-1 space-y-1">
-                      <div className="h-1.5 w-1.5 rounded-full bg-[#477A58]" title="Standup" />
-                      <div className="h-1.5 w-1.5 rounded-full bg-[#C65345]" title="Conflict" />
-                    </div>
-                  )}
-                  {day === 28 && <div className="mt-1 h-1.5 w-1.5 rounded-full bg-[#777064]" />}
+                <div key={time} className="py-2.5 flex items-start gap-4">
+                  <div className="w-20 shrink-0 text-xs font-mono text-[#777064] pt-1">
+                    {time}
+                  </div>
+                  <div className="flex-1 min-h-[36px]">
+                    {slotEvents.length > 0 ? (
+                      <div className="space-y-2">
+                        {slotEvents.map((evt) => (
+                          <div
+                            key={evt.id}
+                            onClick={() => setSelectedEvent(evt)}
+                            className={`p-3 rounded-xl border shadow-2xs cursor-pointer hover:shadow-soft transition-all flex items-center justify-between ${
+                              evt.is_focus_block
+                                ? "border-[#D0C4B2] bg-[#F8F4EC] text-[#29251F]"
+                                : "border-[#CDE3D5] bg-[#EDF5F0] text-[#477A58]"
+                            }`}
+                          >
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-xs">{evt.title}</span>
+                                <Badge variant="outline" className="text-[9px]">
+                                  {evt.is_focus_block ? "Focus Block" : "Calendar Event"}
+                                </Badge>
+                              </div>
+                              {evt.description && (
+                                <p className="text-[11px] text-[#777064] mt-0.5">{evt.description}</p>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-[#777064] font-mono">
+                              {new Date(evt.start_time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} – {new Date(evt.end_time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => openCreateModal(currentDate, time)}
+                        className="w-full py-1.5 px-3 rounded-lg border border-dashed border-[#E8DFD1] hover:border-primary text-[11px] text-[#777064] hover:text-primary hover:bg-[#F8F4EC]/40 text-left transition-colors"
+                      >
+                        + Reserve slot at {time}
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -371,99 +512,134 @@ export default function CalendarPage() {
         </Card>
       )}
 
-      {/* Reclaim-Inspired Scheduling Preview Modal */}
-      <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
-        <DialogContent className="max-w-2xl bg-[#FFFCF6] border-[#E8DFD1] p-6 text-[#29251F]">
-          <DialogHeader>
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-[#FCEEE5] text-primary border border-[#F7D2BC]">
-                <Sparkles size={16} />
-              </div>
-              <div>
-                <DialogTitle className="text-sm font-bold text-[#29251F]">
-                  Reclaim-Style Scheduling Proposal Preview
-                </DialogTitle>
-                <DialogDescription className="text-xs text-[#777064]">
-                  Inspect the ripple effect of proposed schedule adjustments before committing changes.
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-              <div className="p-3.5 rounded-xl border border-[#F5C2BC] bg-[#FDEDEB]/60 space-y-2">
-                <span className="text-[10px] uppercase font-mono font-bold text-[#C65345]">Current State (Collision)</span>
-                <h4 className="font-bold text-sm text-[#29251F]">02:00 PM - 03:00 PM</h4>
-                <p className="text-[11px] text-[#777064]">
-                  Sprint Demo overlaps with 1:1 Aditya. Two critical meetings booked concurrently.
-                </p>
-                <Badge variant="destructive" className="text-[9px]">100% Conflict Score</Badge>
-              </div>
-
-              <div className="p-3.5 rounded-xl border border-[#CDE3D5] bg-[#EDF5F0]/60 space-y-2">
-                <span className="text-[10px] uppercase font-mono font-bold text-[#477A58]">Proposed State (Zero Collision)</span>
-                <h4 className="font-bold text-sm text-[#29251F]">04:00 PM - 04:30 PM</h4>
-                <p className="text-[11px] text-[#777064]">
-                  1:1 shifted to 4:00 PM. Microsoft Graph shared availability validated with zero clashes.
-                </p>
-                <Badge variant="verified" className="text-[9px]">0% Conflict Score</Badge>
-              </div>
-            </div>
-
-            <div className="p-3 rounded-lg bg-[#F8F4EC] border border-[#E8DFD1] text-xs font-mono text-[#777064]">
-              Idempotency Key: <span className="text-primary">#idemp_ev_9921_mod</span> • Target: Microsoft Graph Calendar API
-            </div>
+      {/* VIEW: MONTH VIEW */}
+      {viewMode === "month" && (
+        <Card className="overflow-hidden border-[#E8DFD1] bg-[#FFFCF6] shadow-soft p-4">
+          <div className="grid grid-cols-7 gap-2 mb-2 text-center text-xs font-semibold text-[#777064] uppercase font-mono">
+            <div>Mon</div>
+            <div>Tue</div>
+            <div>Wed</div>
+            <div>Thu</div>
+            <div>Fri</div>
+            <div>Sat</div>
+            <div>Sun</div>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E8DFD1]">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowPreviewModal(false)}
-              className="text-xs border-[#E8DFD1]"
-            >
-              Dismiss
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleAuthorizeReschedule}
-              className="text-xs font-semibold bg-[#477A58] hover:bg-[#3D6A4C] text-white gap-1"
-            >
-              <Check size={13} />
-              <span>Authorize Reschedule & Dispatch</span>
-            </Button>
+          <div className="grid grid-cols-7 gap-2">
+            {Array.from({ length: 35 }).map((_, idx) => {
+              const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+              const dayOffset = startOfMonth.getDay() === 0 ? 6 : startOfMonth.getDay() - 1;
+              const cellDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), idx - dayOffset + 1);
+              const isCurrentMonth = cellDate.getMonth() === currentDate.getMonth();
+              const active = isToday(cellDate);
+
+              const dayEvents = events.filter((e) => isSameDay(e.start_time, cellDate));
+
+              return (
+                <div
+                  key={idx}
+                  onClick={() => {
+                    setCurrentDate(cellDate);
+                    setViewMode("day");
+                  }}
+                  className={`min-h-[76px] p-2 rounded-xl border transition-all cursor-pointer ${
+                    active
+                      ? "border-primary bg-[#FCEEE5]/40 shadow-2xs"
+                      : isCurrentMonth
+                      ? "border-[#E8DFD1] bg-[#FFFCF6] hover:border-[#D0C4B2]"
+                      : "border-transparent bg-[#F8F4EC]/30 text-[#A39B8E]"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className={`text-xs font-semibold ${active ? "text-primary font-bold" : ""}`}>
+                      {cellDate.getDate()}
+                    </span>
+                    {dayEvents.length > 0 && (
+                      <span className="h-4 w-4 rounded-full bg-primary text-white text-[9px] flex items-center justify-center font-bold">
+                        {dayEvents.length}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-1 space-y-1">
+                    {dayEvents.slice(0, 2).map((evt) => (
+                      <div
+                        key={evt.id}
+                        className="text-[9px] truncate px-1 py-0.5 rounded bg-[#F8F4EC] border border-[#E8DFD1] text-[#29251F]"
+                      >
+                        {evt.title}
+                      </div>
+                    ))}
+                    {dayEvents.length > 2 && (
+                      <span className="text-[8px] text-[#777064]">+{dayEvents.length - 2} more</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </DialogContent>
-      </Dialog>
+        </Card>
+      )}
 
       {/* Quick Time Block Modal */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
         <DialogContent className="max-w-md bg-[#FFFCF6] border-[#E8DFD1] p-5 text-[#29251F]">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold text-[#29251F]">
-              Create AI Time Block at {newSlotTime}
+              Schedule Event for {targetSlotDate.toLocaleDateString([], { month: "short", day: "numeric" })} at {targetSlotTime}
             </DialogTitle>
             <DialogDescription className="text-xs text-[#777064]">
-              Reserve focus time or schedule a new alignment sync.
+              Reserve focus time or register a calendar commitment.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3 py-2 text-xs">
             <div>
-              <label className="text-[11px] font-semibold text-[#777064]">Block Title</label>
+              <label className="text-[11px] font-semibold text-[#777064]">Title</label>
               <input
-                defaultValue="Deep Work: Focus Block"
-                className="w-full h-8 px-2.5 mt-1 rounded-lg border border-[#E8DFD1] bg-[#F8F4EC] text-xs text-[#29251F]"
+                value={blockTitle}
+                onChange={(e) => setBlockTitle(e.target.value)}
+                placeholder="e.g. Deep Work: Architecture Design"
+                className="w-full h-8 px-2.5 mt-1 rounded-lg border border-[#E8DFD1] bg-[#F8F4EC] text-xs text-[#29251F] focus:border-primary focus:outline-none"
               />
             </div>
+
             <div>
-              <label className="text-[11px] font-semibold text-[#777064]">Duration</label>
-              <select className="w-full h-8 px-2 mt-1 rounded-lg border border-[#E8DFD1] bg-[#F8F4EC] text-xs text-[#29251F]">
-                <option>30 Minutes</option>
-                <option>1 Hour</option>
-                <option>2 Hours</option>
-              </select>
+              <label className="text-[11px] font-semibold text-[#777064]">Description</label>
+              <input
+                value={blockDescription}
+                onChange={(e) => setBlockDescription(e.target.value)}
+                placeholder="Optional notes or agenda"
+                className="w-full h-8 px-2.5 mt-1 rounded-lg border border-[#E8DFD1] bg-[#F8F4EC] text-xs text-[#29251F] focus:border-primary focus:outline-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] font-semibold text-[#777064]">Duration</label>
+                <select
+                  value={blockDuration}
+                  onChange={(e) => setBlockDuration(e.target.value)}
+                  className="w-full h-8 px-2 mt-1 rounded-lg border border-[#E8DFD1] bg-[#F8F4EC] text-xs text-[#29251F]"
+                >
+                  <option value="30">30 Minutes</option>
+                  <option value="60">1 Hour</option>
+                  <option value="90">1.5 Hours</option>
+                  <option value="120">2 Hours</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-[#777064]">Event Type</label>
+                <select
+                  value={isFocusBlock ? "focus" : "standard"}
+                  onChange={(e) => setIsFocusBlock(e.target.value === "focus")}
+                  className="w-full h-8 px-2 mt-1 rounded-lg border border-[#E8DFD1] bg-[#F8F4EC] text-xs text-[#29251F]"
+                >
+                  <option value="focus">Protected Focus Block</option>
+                  <option value="standard">Standard Meeting / Event</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -478,16 +654,63 @@ export default function CalendarPage() {
             </Button>
             <Button
               size="sm"
-              onClick={() => {
-                setShowCreateModal(false);
-                triggerConfetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
-              }}
+              onClick={handleSaveEvent}
               className="text-xs font-semibold bg-primary hover:bg-primary-hover text-white"
             >
-              Save Focus Block
+              Save Event
             </Button>
           </div>
         </DialogContent>
+      </Dialog>
+
+      {/* Event Details Dialog */}
+      <Dialog open={Boolean(selectedEvent)} onOpenChange={(open) => !open && setSelectedEvent(null)}>
+        {selectedEvent && (
+          <DialogContent className="max-w-sm bg-[#FFFCF6] border-[#E8DFD1] p-5 text-[#29251F]">
+            <DialogHeader>
+              <div className="flex items-center justify-between gap-2">
+                <Badge variant={selectedEvent.is_focus_block ? "secondary" : "verified"} className="text-[10px]">
+                  {selectedEvent.is_focus_block ? "Focus Block" : "Confirmed Event"}
+                </Badge>
+                <span className="text-[10px] font-mono text-[#777064]">
+                  #{selectedEvent.id.slice(0, 8)}
+                </span>
+              </div>
+              <DialogTitle className="text-sm font-bold text-[#29251F] mt-1">
+                {selectedEvent.title}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-[#777064]">
+                {new Date(selectedEvent.start_time).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} • {new Date(selectedEvent.start_time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} – {new Date(selectedEvent.end_time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedEvent.description && (
+              <div className="p-3 rounded-lg bg-[#F8F4EC] border border-[#E8DFD1] text-xs text-[#777064]">
+                {selectedEvent.description}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-3 border-t border-[#E8DFD1]">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => handleDeleteEvent(selectedEvent.id)}
+                className="h-7 text-xs gap-1"
+              >
+                <Trash2 size={12} />
+                <span>Delete</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedEvent(null)}
+                className="h-7 text-xs border-[#E8DFD1]"
+              >
+                Close
+              </Button>
+            </div>
+          </DialogContent>
+        )}
       </Dialog>
     </FadeIn>
   );

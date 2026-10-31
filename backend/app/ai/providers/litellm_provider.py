@@ -46,6 +46,11 @@ class LiteLLMProvider:
             model_name = f"ollama/{model_name}"
         self.model = model_name
 
+        self.api_key = (
+            getattr(settings, "LITELLM_API_KEY", None) 
+            or getattr(settings, "LITELLM_MASTER_KEY", None) 
+            or "ollama"
+        )
         self.timeout = timeout_seconds or (getattr(settings, "LITELLM_TIMEOUT_MS", 30000) / 1000.0)
         self.max_retries = max_retries or getattr(settings, "LITELLM_MAX_RETRIES", 3)
 
@@ -86,15 +91,19 @@ class LiteLLMProvider:
         last_exception = None
         for attempt in range(1, self.max_retries + 1):
             try:
-                response = await litellm.acompletion(
-                    model=self.model,
-                    messages=messages,
-                    api_base=self.api_base,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                    timeout=self.timeout,
-                    format=format,
-                )
+                kwargs: Dict[str, Any] = {
+                    "model": self.model,
+                    "messages": messages,
+                    "api_base": self.api_base,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                    "timeout": self.timeout,
+                }
+                if self.api_key:
+                    kwargs["api_key"] = self.api_key
+                if format:
+                    kwargs["format"] = format
+                response = await litellm.acompletion(**kwargs)
                 return response
             except Exception as e:
                 last_exception = e

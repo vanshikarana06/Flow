@@ -23,7 +23,30 @@ class ThreadService:
             limit=limit,
             offset=offset,
         )
-        return [ThreadListItem.model_validate(t) for t in threads]
+        items: List[ThreadListItem] = []
+        for t in threads:
+            sender_email = None
+            sender_name = None
+            if hasattr(t, "messages") and t.messages:
+                last_msg = t.messages[-1]
+                sender_email = getattr(last_msg, "sender_email", None)
+                sender_name = getattr(last_msg, "sender_name", None)
+            
+            items.append(
+                ThreadListItem(
+                    id=t.id,
+                    subject=t.subject,
+                    snippet=t.snippet,
+                    message_count=t.message_count,
+                    has_attachments=t.has_attachments,
+                    is_read=t.is_read,
+                    is_archived=t.is_archived,
+                    last_message_at=t.last_message_at,
+                    sender_email=sender_email,
+                    sender_name=sender_name,
+                )
+            )
+        return items
 
     async def get_thread_details(self, thread_id: uuid.UUID, user_id: uuid.UUID) -> ThreadDetailResponse:
         thread = await self.email_repo.get_thread_with_messages(thread_id, user_id)

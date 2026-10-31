@@ -1,0 +1,99 @@
+# ==============================================================================
+# FLOW Production Infrastructure Blueprint: Render.com
+# ==============================================================================
+# Docs: https://render.com/docs/blueprint-spec
+# To deploy: Link this repository in Render Dashboard > Blueprints > New Blueprint Instance
+
+services:
+  # ============================================================================
+  # 1. FLOW Backend Web Service (FastAPI / Agent Orchestrator / Workflows)
+  # ============================================================================
+  - type: web
+    name: flow-backend
+    runtime: python
+    region: oregon # or singapore / frankfurt
+    plan: starter # Render starter plan supports background threads & persistent connections
+    rootDir: backend
+    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
+    startCommand: "chmod +x ./scripts/start-render.sh && ./scripts/start-render.sh"
+    healthCheckPath: /health
+    autoDeploy: true
+
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.3
+
+      - key: NODE_ENV
+        value: production
+
+      - key: APP_NAME
+        value: FLOW_BACKEND
+
+      # Supabase PostgreSQL Pooler Connection String (Session / Transaction Pooler on port 6543)
+      # Format: postgresql+asyncpg://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?ssl=require
+      - key: DATABASE_URL
+        sync: false
+
+      - key: DIRECT_URL
+        sync: false
+
+      # Supabase Authentication & Project Secrets
+      - key: SUPABASE_URL
+        sync: false
+
+      - key: SUPABASE_ANON_KEY
+        sync: false
+
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+
+      - key: TOKEN_ENCRYPTION_KEY
+        sync: false
+
+      # Cloudflare Tunnel URL to Ollama / LiteLLM Models (Part 1)
+      # e.g. https://your-tunnel.trycloudflare.com or https://models.yourdomain.com
+      - key: OLLAMA_API_BASE
+        sync: false
+
+      - key: LITELLM_BASE_URL
+        sync: false
+
+      - key: LITELLM_MODEL
+        value: ollama/qwen3:8b
+
+      - key: LITELLM_EMBEDDING_MODEL
+        value: ollama/nomic-embed-text
+
+      - key: LITELLM_MASTER_KEY
+        value: sk-flow-local-dev
+
+      - key: LITELLM_TIMEOUT_MS
+        value: 30000
+
+      - key: LITELLM_MAX_RETRIES
+        value: 3
+
+      # Google Apps Script Email Webhook (for Zero-Trust outbound delivery)
+      - key: APPSCRIPT_WEBHOOK_URL
+        sync: false
+
+      - key: APPSCRIPT_SECRET_KEY
+        sync: false
+
+      # Inbound / Outbound Fallback Email (Resend)
+      - key: RESEND_API_KEY
+        sync: false
+
+      - key: RESEND_WEBHOOK_SECRET
+        sync: false
+
+      # Frontend Origin on Vercel (Part 3)
+      - key: FRONTEND_URL
+        sync: false
+
+      - key: CORS_ORIGINS
+        value: '["https://*.vercel.app", "http://localhost:3000"]'
+

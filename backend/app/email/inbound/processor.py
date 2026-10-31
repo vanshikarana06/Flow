@@ -19,7 +19,9 @@ class InboundEmailProcessor:
         sender_name, sender_email = InboundEmailParser.parse_sender(payload.from_)
         in_reply_to, references = InboundEmailParser.extract_header_references(payload.headers)
         snippet = InboundEmailParser.extract_snippet(payload.text or "")
-        cleaned_subject = InboundEmailParser.clean_subject(payload.subject)
+        cleaned_subject = InboundEmailParser.clean_subject(payload.subject or "")
+        if not cleaned_subject:
+            cleaned_subject = "(No Subject)"
         now = datetime.now(timezone.utc)
 
         # 1. Thread Resolution: Check if in-reply-to references an existing message

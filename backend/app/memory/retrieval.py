@@ -59,8 +59,8 @@ class MemoryRetrievalEngine:
             .where(
                 Contact.user_id == user_id,
                 or_(
-                    func.lower(Relationship.relationship_type).contains(clean_id),
-                    func.lower(Relationship.relationship_type).contains(clean_id_normalized),
+                    func.lower(Relationship.relation_type).contains(clean_id),
+                    func.lower(Relationship.relation_type).contains(clean_id_normalized),
                 ),
             )
             .limit(1)

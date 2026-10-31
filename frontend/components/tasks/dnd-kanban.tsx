@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { 
   DndContext, 
   DragEndEvent, 
@@ -13,19 +13,18 @@ import {
 import { 
   Clock, 
   Calendar, 
-  CheckCircle2, 
   Sparkles, 
   GripVertical,
-  ChevronRight
+  CheckCircle2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TaskItem } from "@/lib/types";
-import { triggerConfetti } from "@/lib/confetti";
 
 interface DndKanbanProps {
   tasks: TaskItem[];
   onTasksChange: (tasks: TaskItem[]) => void;
   onBlockTime: (task: TaskItem) => void;
+  onSelectTask?: (task: TaskItem) => void;
 }
 
 const columns: { id: TaskItem["status"]; title: string }[] = [
@@ -37,10 +36,12 @@ const columns: { id: TaskItem["status"]; title: string }[] = [
 
 function DraggableCard({ 
   task, 
-  onBlockTime 
+  onBlockTime,
+  onSelectTask,
 }: { 
   task: TaskItem; 
   onBlockTime: (task: TaskItem) => void;
+  onSelectTask?: (task: TaskItem) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
@@ -88,22 +89,45 @@ function DraggableCard({
         </Badge>
       </div>
 
-      <h4 className="font-semibold text-xs text-[#29251F] leading-snug">
-        {task.title}
-      </h4>
+      {/* Title & Click to Inspect */}
+      <div 
+        onClick={() => onSelectTask && onSelectTask(task)}
+        className="cursor-pointer space-y-1"
+      >
+        <h4 className="font-semibold text-xs text-[#29251F] leading-snug group-hover:text-primary transition-colors">
+          {task.title}
+        </h4>
+
+        {task.description && (
+          <p className="text-[11px] text-[#777064] line-clamp-2 leading-relaxed">
+            {task.description}
+          </p>
+        )}
+      </div>
 
       {/* AI Decomposition Subtasks */}
       {task.aiBreakdown && task.aiBreakdown.length > 0 && (
-        <div className="p-2 rounded-lg bg-[#F8F4EC] border border-[#E8DFD1]/60 space-y-1">
-          <span className="text-[9px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1">
-            <Sparkles size={10} /> AI Decomposition
-          </span>
+        <div 
+          onClick={() => onSelectTask && onSelectTask(task)}
+          className="p-2 rounded-lg bg-[#F8F4EC] border border-[#E8DFD1]/60 space-y-1 cursor-pointer hover:border-primary/40 transition-colors"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1">
+              <Sparkles size={10} /> AI Decomposition
+            </span>
+            <span className="text-[9px] text-[#777064] font-mono">
+              {task.aiBreakdown.length} subtasks
+            </span>
+          </div>
           <div className="space-y-0.5">
-            {task.aiBreakdown.map((st, i) => (
+            {task.aiBreakdown.slice(0, 3).map((st, i) => (
               <p key={i} className="text-[10px] text-[#777064] truncate">
                 • {st}
               </p>
             ))}
+            {task.aiBreakdown.length > 3 && (
+              <p className="text-[9px] text-primary font-medium">+{task.aiBreakdown.length - 3} more...</p>
+            )}
           </div>
         </div>
       )}
@@ -130,9 +154,12 @@ function DraggableCard({
         </span>
 
         <button
-          onClick={() => onBlockTime(task)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onBlockTime(task);
+          }}
           className="flex items-center gap-1 text-primary hover:text-primary-hover font-semibold transition-colors"
-          title="Block focus time on calendar"
+          title="Schedule focus time block on calendar"
         >
           <Calendar size={11} />
           <span>Block Time</span>
@@ -146,10 +173,12 @@ function DroppableColumn({
   column,
   tasks,
   onBlockTime,
+  onSelectTask,
 }: {
   column: { id: TaskItem["status"]; title: string };
   tasks: TaskItem[];
   onBlockTime: (task: TaskItem) => void;
+  onSelectTask?: (task: TaskItem) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
@@ -158,28 +187,35 @@ function DroppableColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`flex flex-col rounded-2xl border p-3.5 space-y-3 transition-colors ${
+      className={`flex flex-col rounded-xl border p-3 min-h-[500px] transition-colors ${
         isOver
-          ? "border-primary bg-[#FCEEE5]/30 ring-2 ring-primary/20"
-          : "border-[#E8DFD1] bg-[#F8F4EC]/60"
+          ? "border-primary bg-[#FCEEE5]/20"
+          : "border-[#E8DFD1] bg-[#F8F4EC]/40"
       }`}
     >
-      <div className="flex items-center justify-between pb-1 border-b border-[#E8DFD1]">
+      <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#E8DFD1]">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-[#29251F]">{column.title}</span>
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E8DFD1] text-[10px] font-bold text-[#777064] font-mono">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#29251F]">
+            {column.title}
+          </h3>
+          <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#E8DFD1] text-[9px] font-mono font-bold text-[#777064]">
             {tasks.length}
           </span>
         </div>
       </div>
 
-      <div className="flex-1 space-y-2.5 min-h-[300px]">
+      <div className="space-y-2.5 flex-1">
         {tasks.map((task) => (
-          <DraggableCard key={task.id} task={task} onBlockTime={onBlockTime} />
+          <DraggableCard
+            key={task.id}
+            task={task}
+            onBlockTime={onBlockTime}
+            onSelectTask={onSelectTask}
+          />
         ))}
 
         {tasks.length === 0 && (
-          <div className="h-32 flex items-center justify-center rounded-xl border border-dashed border-[#D0C4B2] text-xs text-[#A39B8E]">
+          <div className="h-32 flex items-center justify-center border border-dashed border-[#E8DFD1] rounded-lg text-[11px] text-[#A39B8E]">
             Drop tasks here
           </div>
         )}
@@ -188,7 +224,12 @@ function DroppableColumn({
   );
 }
 
-export function DndKanban({ tasks, onTasksChange, onBlockTime }: DndKanbanProps) {
+export function DndKanban({
+  tasks,
+  onTasksChange,
+  onBlockTime,
+  onSelectTask,
+}: DndKanbanProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -201,45 +242,38 @@ export function DndKanban({ tasks, onTasksChange, onBlockTime }: DndKanbanProps)
     const { active, over } = event;
     if (!over) return;
 
-    const taskId = active.id as string;
-    const targetStatus = over.id as TaskItem["status"];
+    const taskId = String(active.id);
+    const newStatus = over.id as TaskItem["status"];
 
-    const updated = tasks.map((t) => {
-      if (t.id === taskId) {
-        const isNowCompleted = targetStatus === "completed";
-        if (isNowCompleted && t.status !== "completed") {
-          triggerConfetti({
-            particleCount: 35,
-            spread: 60,
-            origin: { y: 0.7 },
-            colors: ["#F28C38", "#477A58"],
-          });
-        }
-        return {
-          ...t,
-          status: targetStatus,
-          progress: isNowCompleted ? 100 : targetStatus === "in_review" ? 90 : targetStatus === "in_progress" ? 50 : 20,
-        };
-      }
-      return t;
-    });
+    const currentTask = tasks.find((t) => t.id === taskId);
+    if (!currentTask || currentTask.status === newStatus) return;
 
-    onTasksChange(updated);
+    const updatedTasks = tasks.map((t) =>
+      t.id === taskId
+        ? {
+            ...t,
+            status: newStatus,
+            progress: newStatus === "completed" ? 100 : newStatus === "in_progress" ? 50 : 0,
+          }
+        : t
+    );
+
+    onTasksChange(updatedTasks);
   };
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {columns.map((col) => (
           <DroppableColumn
             key={col.id}
             column={col}
             tasks={tasks.filter((t) => t.status === col.id)}
             onBlockTime={onBlockTime}
+            onSelectTask={onSelectTask}
           />
         ))}
       </div>
     </DndContext>
   );
 }
-

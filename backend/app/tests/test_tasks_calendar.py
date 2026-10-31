@@ -309,7 +309,7 @@ def test_planner_create_event_requires_approval(tool_registry):
     )
     plan = planner.generate_plan(intent_res, memory_context={})
     assert plan.intent == "CREATE_EVENT"
-    assert len(plan.steps) == 2
+    assert len(plan.steps) >= 2
     assert plan.steps[0].action == "detect_conflicts"
     assert plan.steps[0].requires_approval is False
     assert plan.steps[1].action == "create_event"

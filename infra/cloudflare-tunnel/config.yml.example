@@ -1,0 +1,27 @@
+# ==============================================================================
+# Cloudflare Named Tunnel Configuration: config.yml
+# ==============================================================================
+# Place in: ~/.cloudflared/config.yml or pass via --config config.yml
+# 
+# 1. Create a tunnel:
+#    cloudflared tunnel create flow-models-tunnel
+# 2. Add DNS route in Cloudflare dashboard or via CLI:
+#    cloudflared tunnel route dns flow-models-tunnel models.yourdomain.com
+# 3. Fill in tunnel ID and credentials file path below:
+
+tunnel: <YOUR-TUNNEL-UUID>
+credentials-file: C:\Users\<USER>\.cloudflared\<YOUR-TUNNEL-UUID>.json
+
+ingress:
+  # Route traffic to local Ollama instance (port 11434)
+  - hostname: models.yourdomain.com
+    service: http://localhost:11434
+    originRequest:
+      noTLSVerify: false
+      connectTimeout: 30s
+      keepAliveTimeout: 90s
+      http2Origin: true
+
+  # Fallback 404 rule (required by Cloudflare)
+  - service: http_status:404
+

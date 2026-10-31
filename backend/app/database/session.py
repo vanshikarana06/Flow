@@ -4,7 +4,9 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from app.core.config import get_settings
 
 def clean_async_db_url(raw_url: str) -> str:
-    if raw_url.startswith("postgresql://"):
+    if raw_url.startswith("postgres://"):
+        raw_url = raw_url.replace("postgres://", "postgresql+asyncpg://", 1)
+    elif raw_url.startswith("postgresql://"):
         raw_url = raw_url.replace("postgresql://", "postgresql+asyncpg://", 1)
     url = make_url(raw_url)
     query = dict(url.query)

@@ -19,11 +19,13 @@ import {
   Zap,
   Cpu,
   Layers,
-  X
+  X,
+  LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLayoutStore } from "@/stores/use-layout-store";
 import { useApprovalStore } from "@/stores/use-approval-store";
+import { useAuth } from "@/lib/auth/auth-context";
 
 export interface NavGroup {
   label: string;
@@ -76,8 +78,20 @@ export function Sidebar() {
   const pathname = usePathname();
   const { sidebarCollapsed, toggleSidebar, mobileMenuOpen, setMobileMenuOpen } = useLayoutStore();
   const { approvals } = useApprovalStore();
+  const { user, logout } = useAuth();
   
   const pendingApprovalsCount = approvals.filter((a) => a.status === "pending").length;
+
+  const initials = user?.full_name
+    ? user.full_name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .substring(0, 2)
+        .toUpperCase()
+    : "VR";
+
+  const displayName = user?.full_name || "Vanshika Rana";
 
   const renderNavList = (isMobile = false) => (
     <nav className="flex-1 space-y-3 p-2 overflow-y-auto">
@@ -186,16 +200,25 @@ export function Sidebar() {
             )}
           >
             <div className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#EDF5F0] text-[#477A58] border border-[#CDE3D5] text-xs font-bold">
-              VR
+              {initials}
               <span className="absolute bottom-0 right-0 h-1.5 w-1.5 rounded-full bg-[#477A58] ring-1 ring-[#FFFCF6]" />
             </div>
             {!sidebarCollapsed && (
-              <div className="flex flex-col min-w-0 flex-1">
-                <span className="truncate text-xs font-semibold text-[#29251F]">Vanshika Rana</span>
-                <span className="flex items-center gap-1 text-[9px] text-[#477A58] font-mono">
-                  <Shield size={9} /> Verified Tenant
-                </span>
-              </div>
+              <>
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="truncate text-xs font-semibold text-[#29251F]">{displayName}</span>
+                  <span className="flex items-center gap-1 text-[9px] text-[#477A58] font-mono">
+                    <Shield size={9} /> Verified Tenant
+                  </span>
+                </div>
+                <button
+                  onClick={logout}
+                  className="p-1 text-[#777064] hover:text-[#C65345] hover:bg-[#FDEDEB] rounded transition-colors"
+                  title="Sign Out"
+                >
+                  <LogOut size={13} />
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -215,30 +238,37 @@ export function Sidebar() {
                   F
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-bold text-sm text-[#29251F]">FLOW</span>
+                  <span className="font-bold text-sm tracking-tight text-[#29251F]">FLOW</span>
                   <span className="text-[10px] text-[#777064] font-mono">Trust-First OS</span>
                 </div>
               </div>
               <button
                 onClick={() => setMobileMenuOpen(false)}
-                className="p-1.5 text-[#777064] hover:text-[#29251F] rounded-md hover:bg-[#F1EADF]"
+                className="p-1 rounded-md text-[#777064] hover:text-[#29251F] hover:bg-[#F1EADF]"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
 
             {renderNavList(true)}
 
-            <div className="border-t border-[#E8DFD1] p-3">
-              <div className="flex items-center gap-2.5 rounded-lg p-2 bg-[#F1EADF]/60 border border-[#E8DFD1]">
-                <div className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#EDF5F0] text-[#477A58] border border-[#CDE3D5] text-xs font-bold">
-                  VR
+            <div className="border-t border-[#E8DFD1] p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#EDF5F0] text-[#477A58] border border-[#CDE3D5] text-xs font-bold">
+                  {initials}
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="truncate text-xs font-semibold text-[#29251F]">Vanshika Rana</span>
-                  <span className="text-[9px] text-[#477A58] font-mono">Verified Tenant</span>
+                  <span className="truncate text-xs font-semibold text-[#29251F]">{displayName}</span>
+                  <span className="text-[9px] text-[#477A58] font-mono">Verified Session</span>
                 </div>
               </div>
+              <button
+                onClick={logout}
+                className="p-1.5 text-[#777064] hover:text-[#C65345] rounded-md hover:bg-[#FDEDEB]"
+                title="Sign Out"
+              >
+                <LogOut size={14} />
+              </button>
             </div>
           </div>
         </div>

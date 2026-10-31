@@ -29,6 +29,8 @@ class ThreadDetailResponse(BaseModel):
     is_read: bool
     is_archived: bool
     last_message_at: datetime
+    sender_email: Optional[str] = None
+    sender_name: Optional[str] = None
     messages: List[EmailMessageSummary]
 
 class ThreadListItem(BaseModel):
@@ -42,4 +44,6 @@ class ThreadListItem(BaseModel):
     is_read: bool
     is_archived: bool
     last_message_at: datetime
+    sender_email: Optional[str] = None
+    sender_name: Optional[str] = None
 
